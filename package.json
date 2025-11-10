@@ -1,0 +1,50 @@
+{
+  "name": "ecommerce-monolith",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "find-config": "^1.0.0",
+    "mongodb": "^7.0.0",
+    "mongoose": "^8.19.3",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.10"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/find-config": "^1.0.4",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "json": {
+    "enable_schema_validation": false
+  },
+  "lsp": {
+    "json-language-server": {
+      "settings": {
+        "json": {
+          "schemas": [
+            {
+              "fileMatch": [
+                "/.prettierrc",
+                "/.prettierrc.json"
+              ],
+              "schema": {}
+            }
+          ]
+        }
+      }
+    }
+  }
+}
