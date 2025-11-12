@@ -18,9 +18,16 @@ export interface Order {
     product_id: ObjectId;
     count: number;
   }[];
-  amount: number;
-  status: "completed" | "pending" | "canceled";
-  created_at: Date;
+  totalPrice: number;
+  shipping_address?: {
+    street: string;
+    city: string;
+    province: string;
+    postCode: number;
+  };
+  status: "completed" | "confirmed" | "pending" | "canceled";
+  created_at?: Date;
+  confirmed_at?: Date;
   completed_at?: Date;
   cancelled_at?: Date;
 }
