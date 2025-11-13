@@ -7,7 +7,9 @@ export const userCollection = await database.createCollection("User", {
       required: ["username", "password", "email", "role"],
       properties: {
         email: {
+          unique: true,
           bsonType: "string",
+          pattern: "^[^@]+@[^@]+\\.[^@]+$",
           description: "email must be a string and is required",
         },
         username: {
@@ -28,3 +30,6 @@ export const userCollection = await database.createCollection("User", {
     validationAction: "error",
   },
 });
+
+await userCollection.createIndex({ email: 1 }, { unique: true });
+await userCollection.createIndex({ username: 1 }, { unique: true });
