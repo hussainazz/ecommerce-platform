@@ -1,5 +1,4 @@
 import { ObjectId } from "mongodb";
-import AppError from "@shared/utils/appError.ts";
 import { orderCollection } from "@db/schemas/order.schema.ts";
 
 export class OrderClass {
@@ -52,7 +51,7 @@ export class OrderClass {
   }
 
   static async cancel(_id: string) {
-    if (!ObjectId.isValid(_id)) throw new AppError("order id is invalid", 400);
+    if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
     await orderCollection.updateOne(
       { _id: new ObjectId(_id) },
       { $set: { status: "canceled", canceled_at: Date.now() } },
@@ -60,7 +59,7 @@ export class OrderClass {
   }
 
   static async confirm(_id: string) {
-    if (!ObjectId.isValid(_id)) throw new AppError("order id is invalid", 400);
+    if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
     await orderCollection.updateOne(
       { _id: new ObjectId(_id) },
       { $set: { status: "confirmed", confirmed_at: Date.now() } },
@@ -68,7 +67,7 @@ export class OrderClass {
   }
 
   static async complete(_id: string) {
-    if (!ObjectId.isValid(_id)) throw new AppError("order id is invalid", 400);
+    if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
     await orderCollection.updateOne(
       { _id: new ObjectId(_id) },
       { $set: { status: "completed", completed_at: Date.now() } },

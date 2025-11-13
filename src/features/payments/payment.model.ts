@@ -1,5 +1,4 @@
 import { ObjectId } from "mongodb";
-import AppError from "@shared/utils/appError.ts";
 import { paymentCollection } from "@db/schemas/payment.schema.ts";
 
 export class PaymentClass {
@@ -30,15 +29,18 @@ export class PaymentClass {
   }
 
   static async success(_id: string) {
-    if (!ObjectId.isValid(_id)) throw new AppError("order id is invalid", 400);
-    await paymentCollection.updateOne(
+    if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
+    const result = await paymentCollection.updateOne(
       { _id: new ObjectId(_id) },
       { $set: { status: "success" } },
     );
+    if (result.matchedCount === 0) {
+      throw new Error("product no longer exist");
+    }
   }
 
   static async fail(_id: string) {
-    if (!ObjectId.isValid(_id)) throw new AppError("order id is invalid", 400);
+    if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
     await paymentCollection.updateOne(
       { _id: new ObjectId(_id) },
       { status: "fail" },

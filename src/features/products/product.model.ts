@@ -1,5 +1,4 @@
 import { ObjectId } from "mongodb";
-import AppError from "@shared/utils/appError.ts";
 import { productCollection } from "@db/schemas/product.schema.ts";
 
 export class ProductClass {
@@ -32,19 +31,18 @@ export class ProductClass {
   }
 
   static async delete(_id: string) {
-    if (!ObjectId.isValid(_id)) throw new AppError(`Invalid product id`, 400);
+    if (!ObjectId.isValid(_id)) throw new Error(`Invalid product id`);
     await productCollection.deleteOne({
       _id: new ObjectId(_id),
     });
   }
 
   static async findById(_id: string): Promise<ProductClass | null> {
-    if (!ObjectId.isValid(_id))
-      throw new AppError(`product id is invalid`, 400);
+    if (!ObjectId.isValid(_id)) throw new Error(`product id is invalid`);
     const product = await productCollection.findOne({
       _id: new ObjectId(_id),
     });
-    if (product === null) throw new AppError(`no product was found`, 404);
+    if (product === null) throw new Error(`no product was found`);
     return new ProductClass(
       product.title,
       product.price,
