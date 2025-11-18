@@ -25,13 +25,15 @@ export class UserClass {
 
   static async delete(_id: string) {
     if (!ObjectId.isValid(_id)) throw new Error("Invalid user id");
-    await userCollection.deleteOne({ _id: new ObjectId(_id) });
+    const result = await userCollection.deleteOne({ _id: new ObjectId(_id) });
+    if (result.deletedCount !== 1) throw new Error("no user found to delete");
+    return result;
   }
 
   static async findById(_id: string): Promise<UserClass> {
     if (!ObjectId.isValid(_id)) throw new Error("Invalid user id");
     const result = await userCollection.findOne({ _id: new ObjectId(_id) });
-    if (!result) throw new Error("user id not found");
+    if (!result) throw new Error("no user found");
     return new UserClass(
       result.username,
       result.password,
@@ -43,7 +45,7 @@ export class UserClass {
 
   static async findByEmail(email: string) {
     const result = await userCollection.findOne({ email });
-    if (!result) throw new Error("email not found");
+    if (!result) throw new Error("no user found with this email");
     return result._id.toString();
   }
 
@@ -53,8 +55,9 @@ export class UserClass {
       { _id: new ObjectId(_id) },
       { $set: { password: hashedPassword } },
     );
-    if (result.matchedCount === 0) {
+    if (result.matchedCount !== 1) {
       throw new Error("user no longer exists");
     }
+    return result;
   }
 }

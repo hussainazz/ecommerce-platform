@@ -13,7 +13,7 @@ export class PaymentClass {
   ) {}
 
   static async create(
-    data: Omit<PaymentClass, "_id" | "created_at" | "confirmed_at">,
+    data: Omit<PaymentClass, "_id" | "status" | "created_at" | "confirmed_at">,
   ): Promise<PaymentClass> {
     const result = await paymentCollection.insertOne({
       ...data,
@@ -22,7 +22,7 @@ export class PaymentClass {
     return new PaymentClass(
       data.user_id,
       data.order_id,
-      data.status,
+      "pending",
       data.amount,
       result.insertedId.toString(),
     );
@@ -34,16 +34,21 @@ export class PaymentClass {
       { _id: new ObjectId(_id) },
       { $set: { status: "success" } },
     );
-    if (result.matchedCount === 0) {
+    if (result.matchedCount !== 1) {
       throw new Error("product no longer exist");
     }
+    return result;
   }
 
   static async fail(_id: string) {
     if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
-    await paymentCollection.updateOne(
+    const result = await paymentCollection.updateOne(
       { _id: new ObjectId(_id) },
-      { status: "fail" },
+      { $set: { status: "fail" } },
     );
+    if (result.matchedCount !== 1) {
+      throw new Error("product no longer exist");
+    }
+    return result;
   }
 }

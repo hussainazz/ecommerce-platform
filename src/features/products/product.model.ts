@@ -32,9 +32,12 @@ export class ProductClass {
 
   static async delete(_id: string) {
     if (!ObjectId.isValid(_id)) throw new Error(`Invalid product id`);
-    await productCollection.deleteOne({
+    const deletedProduct = await productCollection.deleteOne({
       _id: new ObjectId(_id),
     });
+    if (deletedProduct.deletedCount === 0)
+      throw new Error(`no product was found to delete`);
+    return deletedProduct;
   }
 
   static async findById(_id: string): Promise<ProductClass | null> {
