@@ -1,7 +1,6 @@
 import express from "express";
 import { configDotenv } from "dotenv";
 import findConfig from "find-config";
-import { mongo_client } from "@config/database.ts";
 configDotenv({ path: findConfig(".env")! });
 
 const app = express();
