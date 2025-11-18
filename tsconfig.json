@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["jest"],
+    "types": ["vitest/globals"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "baseUrl": "./src",
@@ -28,6 +28,6 @@
     "skipLibCheck": true, // Skips type-checking .d.ts files from node_module
     "resolveJsonModule": true
   },
-  "include": ["src", "**/*.test.ts"],
+  "include": ["src", "__tests__", "test"],
   "exclude": ["node_modules", "dist"]
 }
