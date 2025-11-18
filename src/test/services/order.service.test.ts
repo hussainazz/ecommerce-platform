@@ -1,5 +1,5 @@
 import { orderCollection } from "@db/schemas/order.schema.ts";
-import { OrderClass } from "@features/orders/order.model.ts";
+import { OrderService } from "@features/orders/order.service.ts";
 import { ObjectId } from "mongodb";
 
 let testID: string;
@@ -28,9 +28,9 @@ afterAll(async () => {
   await orderCollection.deleteMany({});
 });
 
-describe("OrderClass - integrationTest", () => {
-  it("should create new order and return OrderClass instance", async () => {
-    const order = await OrderClass.create({
+describe("OrderService - integrationTest", () => {
+  it("should create new order", async () => {
+    const order = await OrderService.create({
       shipping_address: {
         street: "street 1001",
         city: "karaj",
@@ -48,12 +48,11 @@ describe("OrderClass - integrationTest", () => {
     });
     const _id = new ObjectId(order._id);
     const findOrder = await orderCollection.findOne({ _id });
-    expect(order).toBeInstanceOf(OrderClass);
     expect(findOrder?._id).toBeDefined();
   });
 
   it("should assign `cancel` to status", async () => {
-    await OrderClass.cancel(testID);
+    await OrderService.cancel(testID);
     const modifiedOrder = await orderCollection.findOne({
       _id: new ObjectId(testID),
     });
@@ -62,7 +61,7 @@ describe("OrderClass - integrationTest", () => {
   });
 
   it("should assign `completed` to status", async () => {
-    await OrderClass.complete(testID);
+    await OrderService.complete(testID);
     const modifiedOrder = await orderCollection.findOne({
       _id: new ObjectId(testID),
     });
@@ -71,7 +70,7 @@ describe("OrderClass - integrationTest", () => {
   });
 
   it("should assign `confirmed` to status", async () => {
-    await OrderClass.confirm(testID);
+    await OrderService.confirm(testID);
     const modifiedOrder = await orderCollection.findOne({
       _id: new ObjectId(testID),
     });
@@ -81,22 +80,22 @@ describe("OrderClass - integrationTest", () => {
 
   it("should throw when finding non-existing order", async () => {
     await expect(
-      OrderClass.findById("507f1f77bcf86cd799439011"),
+      OrderService.findById("507f1f77bcf86cd799439011"),
     ).rejects.toThrow("no order found");
   });
 
   it("should throw when updating non-existing order", async () => {
     // compelete order
     await expect(
-      OrderClass.complete("507f1f77bcf86cd799439011"),
+      OrderService.complete("507f1f77bcf86cd799439011"),
     ).rejects.toThrow("no order found to complete");
     // confirm order
     await expect(
-      OrderClass.confirm("507f1f77bcf86cd799439011"),
+      OrderService.confirm("507f1f77bcf86cd799439011"),
     ).rejects.toThrow("no order found to confirm");
     // cancel order
-    await expect(OrderClass.cancel("507f1f77bcf86cd799439011")).rejects.toThrow(
-      "no order found to cancel",
-    );
+    await expect(
+      OrderService.cancel("507f1f77bcf86cd799439011"),
+    ).rejects.toThrow("no order found to cancel");
   });
 });

@@ -1,5 +1,5 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
-import { ProductClass } from "@features/products/product.model.ts";
+import { ProductService } from "@features/products/product.service.ts";
 
 let testID: any;
 
@@ -19,9 +19,9 @@ afterAll(async () => {
   await productCollection.deleteMany({});
 });
 
-describe("ProductClass - integrationTest", () => {
-  it("Should create a product and return instance of ProductClass", async () => {
-    const product = await ProductClass.create({
+describe("ProductService - integrationTest", () => {
+  it("Should create a product", async () => {
+    const product = await ProductService.create({
       title: "plastic car",
       price: 100000,
       category: "toy",
@@ -32,28 +32,27 @@ describe("ProductClass - integrationTest", () => {
       title: product.title,
     });
     expect(createdProduct!._id).toBeDefined();
-    expect(product).toBeInstanceOf(ProductClass);
   });
 
-  it("should find the product document", async () => {
-    const product = await ProductClass.findById(testID);
-    expect(product).toBeInstanceOf(ProductClass);
+  it("should find the product", async () => {
+    const product = await ProductService.findById(testID);
+    expect(product?._id).toBeDefined();
   });
 
   it("should throw when finding non-existing product", async () => {
     await expect(
-      ProductClass.findById("507f1f77bcf86cd799439011"),
+      ProductService.findById("507f1f77bcf86cd799439011"),
     ).rejects.toThrow(`no product was found`);
   });
 
   it("should delete the product document", async () => {
-    const product = await ProductClass.delete(testID);
+    const product = await ProductService.delete(testID);
     expect(product.deletedCount).toEqual(1);
   });
 
   it("should throw when deleting non-existing product", async () => {
     await expect(
-      ProductClass.delete("507f1f77bcf86cd799439011"),
+      ProductService.delete("507f1f77bcf86cd799439011"),
     ).rejects.toThrow(`no product was found to delete`);
   });
 });
