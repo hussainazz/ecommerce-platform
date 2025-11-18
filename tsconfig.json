@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["jest"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "baseUrl": "./src",
@@ -24,9 +25,9 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true, // Skips type-checking .d.ts files from node_modules
+    "skipLibCheck": true, // Skips type-checking .d.ts files from node_module
     "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["src", "**/*.test.ts"],
   "exclude": ["node_modules", "dist"]
 }
