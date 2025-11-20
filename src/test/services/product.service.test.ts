@@ -1,9 +1,12 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { ProductService } from "@features/products/product.service.ts";
-
+import { database } from "@db/database.ts";
+import { reviewCollection } from "@db/schemas/review.schema.ts";
+import { ConnectionCheckOutStartedEvent, ObjectId } from "mongodb";
 let testID: any;
-
+let testID2: any;
 beforeAll(async () => {
+  await database.collection("Product").drop();
   await productCollection.deleteMany({});
   const testProduct = await productCollection.insertOne({
     title: "test title",
@@ -31,7 +34,7 @@ describe("ProductService - integrationTest", () => {
     const createdProduct = await productCollection.findOne({
       title: product.title,
     });
-    expect(createdProduct!._id).toBeDefined();
+    expect(createdProduct?._id).toBeDefined();
   });
 
   it("should find the product", async () => {
@@ -45,14 +48,14 @@ describe("ProductService - integrationTest", () => {
     ).rejects.toThrow(`no product was found`);
   });
 
-  it("should delete the product document", async () => {
-    const product = await ProductService.delete(testID);
-    expect(product.deletedCount).toEqual(1);
-  });
-
   it("should throw when deleting non-existing product", async () => {
     await expect(
       ProductService.delete("507f1f77bcf86cd799439011"),
     ).rejects.toThrow(`no product was found to delete`);
+  });
+
+  it("should delete the product", async () => {
+    const product = await ProductService.delete(testID);
+    expect(product.deletedCount).toEqual(1);
   });
 });

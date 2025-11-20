@@ -1,4 +1,5 @@
 export type UserRole = "user" | "admin";
+export type Rate = 1 | 2 | 3 | 4 | 5;
 
 export interface Payment {
   _id?: string;
@@ -17,11 +18,14 @@ export interface Product {
   category: string;
   inventory: number;
   description: string | null;
-  review?: {
-    user_id: string;
-    rate: 1 | 2 | 3 | 4 | 5;
-    text: string;
-  }[];
+}
+
+export interface Review {
+  _id?: string;
+  product_id: string;
+  user_id: string;
+  rate: 1 | 2 | 3 | 4 | 5;
+  comment: string;
 }
 
 export interface Order {
