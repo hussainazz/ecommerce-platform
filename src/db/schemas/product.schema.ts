@@ -32,33 +32,6 @@ if (!productCollection) {
             bsonType: "string",
             description: "Optional detailed product description",
           },
-          reviews: {
-            bsonType: "array",
-            items: {
-              bsonType: "object",
-              required: ["user_id", "rate"],
-              properties: {
-                user_id: {
-                  bsonType: "objectId",
-                  description: "user_id most an objectId and is required",
-                },
-                rate: {
-                  bsonType: "int",
-                  minimum: 1,
-                  maximum: 5,
-                  description: "rate from 1 to 5",
-                },
-                text: {
-                  bsonType: ["string", "null"],
-                  description: "text must be type of string",
-                },
-                created_at: {
-                  bsonType: "number",
-                  description: "when the review was created",
-                },
-              },
-            },
-          },
         },
       },
       validationLevel: "strict",

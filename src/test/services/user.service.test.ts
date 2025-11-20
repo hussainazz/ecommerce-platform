@@ -1,5 +1,6 @@
 import { userCollection } from "@db/schemas/user.schema.ts";
 import { UserService } from "@features/auth/auth.service.ts";
+import { ConnectionCheckOutStartedEvent, ObjectId } from "mongodb";
 
 let testID: any;
 
@@ -45,7 +46,7 @@ describe("UserService - integrationTest", () => {
     expect(updateResult.modifiedCount).toEqual(1);
   });
 
-  it("should throw when updating non-existent user", async () => {
+  it("should throw when updating password non-existent user", async () => {
     await expect(
       UserService.updatePassword("507f1f77bcf86cd799439011", "98765432"),
     ).rejects.toThrow("user no longer exists");
