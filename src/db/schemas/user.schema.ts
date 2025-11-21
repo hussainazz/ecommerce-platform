@@ -1,3 +1,4 @@
+import { property } from "zod";
 import { database } from "../database.ts";
 
 export let userCollection = database.collection("User");
@@ -26,6 +27,29 @@ if (!userCollection) {
           role: {
             bsonType: "string",
             description: "role must be a string and is required",
+          },
+          createdAt: {
+            bsonType: "date",
+            default: { $date: "$$NOW" },
+          },
+          refreshTokens: {
+            bsonType: "array",
+            items: {
+              bsonType: "object",
+              required: ["tokenHash, expiresAt"],
+              tokenHash: {
+                bsonType: "string",
+                description: ["hashed refresh token"],
+              },
+              expiresAt: {
+                bsonType: "number",
+                description: ["exp date of refresh token"],
+              },
+              createdAt: {
+                bsonType: "number",
+                description: ["created date of refresh token"],
+              },
+            },
           },
         },
       },
