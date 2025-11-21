@@ -1,3 +1,5 @@
+import type { ObjectId } from "mongodb";
+
 export type UserRole = "user" | "admin";
 export type Rate = 1 | 2 | 3 | 4 | 5;
 
@@ -50,9 +52,19 @@ export interface Order {
 }
 
 export interface User {
-  _id?: string;
+  _id?: string | ObjectId;
   username: string;
   password: string;
   email: string;
-  role: UserRole;
+  role?: UserRole;
+  refresh_token?: {
+    tokenHash: string;
+    expiresAt: number;
+    createdAt: number;
+  };
+  refresh_tokens?: {
+    tokenHash: string;
+    expiresAt: number;
+    createdAt: number;
+  }[];
 }
