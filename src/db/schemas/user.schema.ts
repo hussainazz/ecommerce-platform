@@ -31,25 +31,6 @@ if (!userCollection) {
             bsonType: "date",
             default: { $date: "$$NOW" },
           },
-          refreshTokens: {
-            bsonType: "array",
-            items: {
-              bsonType: "object",
-              required: ["tokenHash, expiresAt"],
-              tokenHash: {
-                bsonType: "string",
-                description: ["hashed refresh token"],
-              },
-              expiresAt: {
-                bsonType: "number",
-                description: ["exp date of refresh token"],
-              },
-              createdAt: {
-                bsonType: "number",
-                description: ["created date of refresh token"],
-              },
-            },
-          },
         },
       },
       validationLevel: "strict",

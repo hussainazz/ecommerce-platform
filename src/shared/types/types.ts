@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import { extend } from "zod/mini";
 
 export type UserRole = "user" | "admin";
 export type Rate = 1 | 2 | 3 | 4 | 5;
@@ -67,4 +68,20 @@ export interface User {
     expiresAt: number;
     createdAt: number;
   }[];
+}
+
+export interface RefToken {
+  jti: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: number;
+  createdAt: number;
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+    }
+  }
 }
