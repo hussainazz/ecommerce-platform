@@ -11,7 +11,6 @@ if (!userCollection) {
         required: ["username", "password", "email", "role"],
         properties: {
           email: {
-            unique: true,
             bsonType: "string",
             pattern: "^[^@]+@[^@]+\\.[^@]+$",
             description: "email must be a string and is required",
@@ -31,25 +30,6 @@ if (!userCollection) {
           createdAt: {
             bsonType: "date",
             default: { $date: "$$NOW" },
-          },
-          refreshTokens: {
-            bsonType: "array",
-            items: {
-              bsonType: "object",
-              required: ["tokenHash, expiresAt"],
-              tokenHash: {
-                bsonType: "string",
-                description: ["hashed refresh token"],
-              },
-              expiresAt: {
-                bsonType: "number",
-                description: ["exp date of refresh token"],
-              },
-              createdAt: {
-                bsonType: "number",
-                description: ["created date of refresh token"],
-              },
-            },
           },
         },
       },
