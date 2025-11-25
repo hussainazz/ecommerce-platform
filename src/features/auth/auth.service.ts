@@ -11,7 +11,7 @@ export class UserService {
     const passwordHash = await bcrypt.hash(data.password, 12);
     const result = await userCollection.insertOne(data);
     return {
-      _id: result.insertedId,
+      _id: result.insertedId.toString(),
       username: data.username,
       password: passwordHash,
       email: data.email,
@@ -24,7 +24,7 @@ export class UserService {
     userId: string,
     tokenRaw: string,
     maxAge: number,
-  ): Promise<Types.RefToken> {
+  ) {
     // should create validation everywhere that we used Data.now()
     if (!jti || !tokenRaw || !userId || !maxAge)
       throw new Error("user id, token or exp date is missing");
