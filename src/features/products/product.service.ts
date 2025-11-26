@@ -1,5 +1,4 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
-import { reviewCollection } from "@db/schemas/review.schema.ts";
 import * as Types from "@shared/types/types.ts";
 import { ObjectId } from "mongodb";
 
