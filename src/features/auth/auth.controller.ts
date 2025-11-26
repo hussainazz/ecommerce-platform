@@ -17,7 +17,7 @@ import findConfig from "find-config";
 import { RegisterSchema, LoginSchema } from "@shared/types/types.ts";
 configDotenv({ path: findConfig(".env")! });
 
-const router = express.Router();
+export const router = express.Router();
 
 export const registerHandler = async (
   req: Request,
@@ -83,7 +83,7 @@ export const loginHandler = async (
   const userId = await UserService.findIdByUsername(reqBody.data.username);
   if (!userId) {
     return res.status(406).json({
-      message: "username mismatch",
+      message: "USERNAME_MISMATCH",
     });
   }
   const user = await UserService.findByPassword(
@@ -92,7 +92,7 @@ export const loginHandler = async (
   );
   if (!user) {
     return res.status(401).json({
-      message: "password is wrong",
+      error: "PASSWORD_MISMATCH",
     });
   }
   const accessToken = createAccessToken(userId);
@@ -112,7 +112,10 @@ export const loginHandler = async (
   });
   res.status(200).json({
     status: "success",
-    message: "authentication successfull",
+    user: {
+      id: user._id,
+      username: user.username,
+    },
   });
 };
 
@@ -162,7 +165,7 @@ export const logoutHandelr = async (
 ) => {
   if (!req.cookies) {
     return res.status(401).json({
-      error: "COOKIE_NOTFOUND",
+      error: "COOKIE_NOT_FOUND",
     });
   }
   const refreshToken = req.cookies.refresh_token;
