@@ -1,9 +1,11 @@
 import { database } from "@db/database.ts";
 import { required } from "zod/mini";
 
-export let tokenCollection = database.collection("Token");
-
-if (!tokenCollection) {
+export let tokenCollection: any;
+const collections = await database.listCollections({ name: "Token" }).toArray();
+if (collections.length === 1) {
+  tokenCollection = database.collection("Token");
+} else {
   tokenCollection = await database.createCollection("Token", {
     validator: {
       $jsonSchema: {

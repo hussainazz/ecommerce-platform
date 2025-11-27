@@ -1,7 +1,11 @@
+import type { any } from "zod/v3";
 import { database } from "../database.ts";
 
-export let orderCollection = database.collection("Order");
-if (!orderCollection) {
+export let orderCollection: any;
+const collections = await database.listCollections({ name: "Order" }).toArray();
+if (collections.length === 1) {
+  orderCollection = database.collection("Order");
+} else {
   orderCollection = await database.createCollection("Order", {
     validator: {
       $jsonSchema: {

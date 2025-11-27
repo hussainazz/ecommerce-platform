@@ -1,7 +1,12 @@
 import { database } from "@db/database.ts";
 
-export let reviewCollection = database.collection("Review");
-if (!reviewCollection) {
+export let reviewCollection: any;
+const collections = await database
+  .listCollections({ name: "Review" })
+  .toArray();
+if (collections.length === 1) {
+  reviewCollection = database.collection("Review");
+} else {
   reviewCollection = await database.createCollection("Review", {
     validator: {
       $jsonSchema: {
