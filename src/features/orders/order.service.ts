@@ -5,6 +5,8 @@ import { check, z } from "zod/mini";
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { isObjectIdOrHexString } from "mongoose";
 import { ProductService } from "@features/products/product.service.ts";
+import { object, string } from "zod/v3";
+import { obj } from "find-config";
 
 export class OrderService {
   static async create(
@@ -87,10 +89,18 @@ export class OrderService {
 
   static async delete(_id: string) {
     if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
-    const result = await orderCollection.deleteOne({ _id: new ObjectId(_id) });
-    if (result.deletedCount === 0) {
+    const result = await orderCollection.findOneAndDelete({
+      _id: new ObjectId(_id),
+    });
+    if (!result) {
       throw new Error("order no longer exists");
     }
+    if (result.status === "canceled") return;
+    await Promise.all(
+      result.products.map((prod: any) =>
+        ProductService.increaseStock(prod.product_id, prod.count),
+      ),
+    );
   }
 
   static async updateItems(
@@ -116,12 +126,18 @@ export class OrderService {
 
   static async cancel(_id: string) {
     if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
-    const canceledOrder = await orderCollection.updateOne(
+    const canceledOrder = await orderCollection.findOneAndUpdate(
       { _id: new ObjectId(_id) },
       { $set: { status: "canceled", canceled_at: Date.now() } },
     );
-    if (canceledOrder.modifiedCount !== 1)
+    if (!canceledOrder) {
       throw new Error("no order found to cancel");
+    }
+    await Promise.all(
+      canceledOrder.products.map((prod: any) =>
+        ProductService.increaseStock(prod.product_id, prod.count),
+      ),
+    );
   }
 
   static async confirm(_id: string) {
