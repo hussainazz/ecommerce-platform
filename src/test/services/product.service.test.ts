@@ -4,7 +4,7 @@ import { database } from "@db/database.ts";
 import { reviewCollection } from "@db/schemas/review.schema.ts";
 import { ConnectionCheckOutStartedEvent, ObjectId } from "mongodb";
 let testID: any;
-let testID2: any;
+
 beforeAll(async () => {
   await database.collection("Product").drop();
   await productCollection.deleteMany({});
@@ -12,7 +12,7 @@ beforeAll(async () => {
     title: "test title",
     price: 10000,
     category: "test category",
-    inventory: 100,
+    stock: 100,
     description: "a test doc",
   });
   testID = testProduct.insertedId.toString();
@@ -28,7 +28,7 @@ describe("ProductService - integrationTest", () => {
       title: "plastic car",
       price: 100000,
       category: "toy",
-      inventory: 1000,
+      stock: 1000,
       description: "a car toy made for kids older than 3",
     });
     const createdProduct = await productCollection.findOne({
