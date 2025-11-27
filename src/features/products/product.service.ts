@@ -63,4 +63,16 @@ export class ProductService {
       }
     }
   }
+  static async increaseStock(_id: string, quantityToIncrease: number) {
+    if (!ObjectId.isValid(_id)) throw new Error(`product id is invalid`);
+    const result = await productCollection.updateOne(
+      {
+        _id: new ObjectId(_id),
+      },
+      { $inc: { stock: +quantityToIncrease } },
+    );
+    if (result.matchedCount === 0) {
+      throw new Error(`product ${_id} not exists`);
+    }
+  }
 }
