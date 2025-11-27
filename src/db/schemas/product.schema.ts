@@ -1,13 +1,19 @@
 import { database } from "../database.ts";
 
-export let productCollection = database.collection("Product");
-if (!productCollection) {
+export let productCollection: any;
+
+const collections = await database
+  .listCollections({ name: "Product" })
+  .toArray();
+if (collections.length === 1) {
+  productCollection = database.collection("Product");
+} else {
   productCollection = await database.createCollection("Product", {
     validator: {
       $jsonSchema: {
         bsonType: "object",
         title: "Product Validation",
-        required: ["title", "price", "inventory", "category"],
+        required: ["title", "price", "stock", "category"],
         properties: {
           title: {
             bsonType: "string",
@@ -18,11 +24,11 @@ if (!productCollection) {
             minimum: 0,
             description: "Price must be a positive number and is required",
           },
-          inventory: {
+          stock: {
             bsonType: "int",
             minimum: 0,
             description:
-              "Inventory count must be a non-negative integer and is required",
+              "stock count must be a non-negative integer and is required",
           },
           category: {
             bsonType: "string",

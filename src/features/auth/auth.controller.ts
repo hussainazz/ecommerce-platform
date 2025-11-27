@@ -17,7 +17,7 @@ import findConfig from "find-config";
 import { RegisterSchema, LoginSchema } from "@shared/types/types.ts";
 configDotenv({ path: findConfig(".env")! });
 
-const router = express.Router();
+export const router = express.Router();
 
 export const registerHandler = async (
   req: Request,
@@ -77,13 +77,13 @@ export const loginHandler = async (
   if (!reqBody.success) {
     return res.status(400).json({
       status: "fail",
-      error: z.treeifyError(reqBody.error),
+      error: z.prettifyError(reqBody.error),
     });
   }
   const userId = await UserService.findIdByUsername(reqBody.data.username);
   if (!userId) {
     return res.status(406).json({
-      message: "username mismatch",
+      message: "USERNAME_MISMATCH",
     });
   }
   const user = await UserService.findByPassword(
@@ -92,7 +92,7 @@ export const loginHandler = async (
   );
   if (!user) {
     return res.status(401).json({
-      message: "password is wrong",
+      error: "PASSWORD_MISMATCH",
     });
   }
   const accessToken = createAccessToken(userId);
@@ -112,7 +112,10 @@ export const loginHandler = async (
   });
   res.status(200).json({
     status: "success",
-    message: "authentication successfull",
+    user: {
+      id: user._id,
+      username: user.username,
+    },
   });
 };
 
@@ -135,10 +138,14 @@ export const refreshHandler = async (
   } catch (err) {
     return res.status(401).json({ error: "REFRESH_TOKEN_INVALID" });
   }
-
-  const token = await UserService.findToken(payload.jti);
-  if (token === null)
-    return res.status(401).json({ error: "REFRESH_TOKEN_NOT_FOUND" });
+  let token;
+  try {
+    token = await UserService.findToken(payload.jti);
+    if (token === null)
+      return res.status(401).json({ error: "REFRESH_TOKEN_NOT_FOUND" });
+  } catch (e) {
+    return next(e);
+  }
   const isMatch = await bcrypt.compare(tokenRaw, token.tokenHash);
   if (!isMatch)
     return res.status(401).json({ error: "REFRESH_TOKEN_MISMATCH" });
@@ -162,7 +169,7 @@ export const logoutHandelr = async (
 ) => {
   if (!req.cookies) {
     return res.status(401).json({
-      error: "COOKIE_NOTFOUND",
+      error: "COOKIE_NOT_FOUND",
     });
   }
   const refreshToken = req.cookies.refresh_token;
@@ -178,11 +185,15 @@ export const logoutHandelr = async (
   } catch (err) {
     return res.status(401).json({ error: "REFRESH_TOKEN_INVALID" });
   }
-  const isDeleted = await UserService.deleteToken(payload.jti);
-  if (!isDeleted) {
-    return res.status(404).json({
-      error: "REFERSH_TOKEN_NOT_FOUND",
-    });
+  try {
+    const isDeleted = await UserService.deleteToken(payload.jti);
+    if (!isDeleted) {
+      return res.status(404).json({
+        error: "REFERSH_TOKEN_NOT_FOUND",
+      });
+    }
+  } catch (e) {
+    return next(e);
   }
   res.clearCookie("access_token");
   res.clearCookie("refresh_token");

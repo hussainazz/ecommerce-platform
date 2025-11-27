@@ -1,7 +1,12 @@
+import type { any } from "zod/v3";
 import { database } from "../database.ts";
+import type { Collection, MongoClient } from "mongodb";
 
-export let orderCollection = database.collection("Order");
-if (!orderCollection) {
+export let orderCollection: Collection;
+const collections = await database.listCollections({ name: "Order" }).toArray();
+if (collections.length === 1) {
+  orderCollection = database.collection("Order");
+} else {
   orderCollection = await database.createCollection("Order", {
     validator: {
       $jsonSchema: {
@@ -22,7 +27,7 @@ if (!orderCollection) {
               required: ["product_id", "count"],
               properties: {
                 product_id: {
-                  bsonType: "objectId",
+                  bsonType: "string",
                   description: "Reference to the Product",
                 },
                 count: {

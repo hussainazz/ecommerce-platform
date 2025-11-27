@@ -1,5 +1,4 @@
 import { mongo_client } from "@config/mongo_client.ts";
-import type { Db } from "mongodb";
 
 export let database = mongo_client.db(process.env.DATABASE_NAME);
 

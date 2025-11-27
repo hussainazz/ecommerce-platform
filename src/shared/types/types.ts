@@ -1,3 +1,4 @@
+import { productCollection } from "@db/schemas/product.schema.ts";
 import type { ObjectId } from "mongodb";
 import z from "zod";
 export type UserRole = "user" | "admin";
@@ -18,7 +19,7 @@ export interface Product {
   title: string;
   price: number;
   category: string;
-  inventory: number;
+  stock: number;
   description: string | null;
 }
 
@@ -110,7 +111,30 @@ export const LoginSchema = z.object({
     .transform((val) => val.trim().toLowerCase()),
   password: z
     .string()
-    .min(8, "password too short")
-    .max(30, "Password must be less than 30")
+    .min(8, "password must be more that 8 character")
+    .max(30, "password must be less than 30 character")
     .transform((val) => val.trim()),
 });
+export const OrderSchema = z.object({
+  shipping_address: z.object({
+    street: z.string(),
+    city: z.string(),
+    province: z.string(),
+    postCode: z
+      .number()
+      .gte(1000000000, "post code must be a 10-digit number.")
+      .lt(10000000000, "post code must be a 10-digit number."),
+  }),
+  products: z.array(
+    z.object({
+      product_id: z.string(),
+      count: z.number().min(1, "count must be more than 0"),
+    }),
+  ),
+});
+export const orderItemsScehema = z.array(
+  z.object({
+    product: z.string(),
+    count: z.number().min(1),
+  }),
+);
