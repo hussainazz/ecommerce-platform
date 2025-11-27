@@ -1,7 +1,9 @@
 import { orderCollection } from "@db/schemas/order.schema.ts";
 import { OrderService } from "@features/orders/order.service.ts";
 import { ObjectId } from "mongodb";
-
+import { productCollection } from "@db/schemas/product.schema.ts";
+import { ProductService } from "@features/products/product.service.ts";
+import { database } from "@db/database.ts";
 let testID: string;
 
 beforeAll(async () => {
@@ -28,8 +30,22 @@ afterAll(async () => {
   await orderCollection.deleteMany({});
 });
 
-describe("OrderService - integrationTest", () => {
-  it("should create new order", async () => {
+describe("OrderService - integrationTest", async () => {
+  const testProduct_0 = await productCollection.insertOne({
+    title: "test0",
+    price: 20000,
+    category: "test category",
+    stock: 5,
+    description: "a test doc",
+  });
+  const testProduct_1 = await productCollection.insertOne({
+    title: "test1",
+    price: 10000,
+    category: "test category",
+    stock: 5,
+    description: "a test doc",
+  });
+  it("should create new order and decrease product stock", async () => {
     const order = await OrderService.create({
       shipping_address: {
         street: "street 1001",
@@ -37,18 +53,70 @@ describe("OrderService - integrationTest", () => {
         province: "alborz",
         postCode: 2,
       },
-      totalPrice: 20000,
       products: [
         {
-          product_id: "test",
-          count: 10,
+          product_id: testProduct_0.insertedId.toString(),
+          count: 3,
+        },
+        {
+          product_id: testProduct_1.insertedId.toString(),
+          count: 3,
         },
       ],
       user_id: "test",
     });
-    const _id = new ObjectId(order._id);
-    const findOrder = await orderCollection.findOne({ _id });
+    const findOrder = await orderCollection.findOne({
+      _id: new ObjectId(order._id),
+    });
+    const findProduct = await productCollection.findOne({
+      _id: testProduct_0.insertedId,
+    });
     expect(findOrder?._id).toBeDefined();
+    expect(findProduct?.stock).toEqual(2);
+  });
+
+  it("should not add product when out of stock", async () => {
+    try {
+      await OrderService.create({
+        shipping_address: {
+          street: "street 1001",
+          city: "karaj",
+          province: "alborz",
+          postCode: 2000000000,
+        },
+        products: [
+          {
+            product_id: testProduct_0.insertedId.toString(),
+            count: 10,
+          },
+        ],
+        user_id: "test",
+      });
+    } catch (e: any) {
+      expect(e.message).toContain("out of stock");
+    }
+  });
+
+  it("should not add order containing non-existent product id", async () => {
+    try {
+      await OrderService.create({
+        shipping_address: {
+          street: "street 1001",
+          city: "karaj",
+          province: "alborz",
+          postCode: 2000000000,
+        },
+        products: [
+          {
+            product_id: "507f1f77bcf86cd799439013",
+            count: 10,
+          },
+        ],
+        user_id: "test",
+      });
+    } catch (e: any) {
+      expect(e.message).toContain("product id not exist");
+    }
   });
 
   it("should assign `cancel` to status", async () => {
