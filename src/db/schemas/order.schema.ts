@@ -22,7 +22,7 @@ if (!orderCollection) {
               required: ["product_id", "count"],
               properties: {
                 product_id: {
-                  bsonType: "objectId",
+                  bsonType: "string",
                   description: "Reference to the Product",
                 },
                 count: {

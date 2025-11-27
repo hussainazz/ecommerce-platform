@@ -77,7 +77,7 @@ export const loginHandler = async (
   if (!reqBody.success) {
     return res.status(400).json({
       status: "fail",
-      error: z.treeifyError(reqBody.error),
+      error: z.prettifyError(reqBody.error),
     });
   }
   const userId = await UserService.findIdByUsername(reqBody.data.username);
@@ -138,10 +138,14 @@ export const refreshHandler = async (
   } catch (err) {
     return res.status(401).json({ error: "REFRESH_TOKEN_INVALID" });
   }
-
-  const token = await UserService.findToken(payload.jti);
-  if (token === null)
-    return res.status(401).json({ error: "REFRESH_TOKEN_NOT_FOUND" });
+  let token;
+  try {
+    token = await UserService.findToken(payload.jti);
+    if (token === null)
+      return res.status(401).json({ error: "REFRESH_TOKEN_NOT_FOUND" });
+  } catch (e) {
+    return next(e);
+  }
   const isMatch = await bcrypt.compare(tokenRaw, token.tokenHash);
   if (!isMatch)
     return res.status(401).json({ error: "REFRESH_TOKEN_MISMATCH" });
@@ -181,11 +185,15 @@ export const logoutHandelr = async (
   } catch (err) {
     return res.status(401).json({ error: "REFRESH_TOKEN_INVALID" });
   }
-  const isDeleted = await UserService.deleteToken(payload.jti);
-  if (!isDeleted) {
-    return res.status(404).json({
-      error: "REFERSH_TOKEN_NOT_FOUND",
-    });
+  try {
+    const isDeleted = await UserService.deleteToken(payload.jti);
+    if (!isDeleted) {
+      return res.status(404).json({
+        error: "REFERSH_TOKEN_NOT_FOUND",
+      });
+    }
+  } catch (e) {
+    return next(e);
   }
   res.clearCookie("access_token");
   res.clearCookie("refresh_token");
