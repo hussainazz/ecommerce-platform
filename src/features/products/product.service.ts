@@ -12,7 +12,7 @@ export class ProductService {
       title: data.title,
       price: data.price,
       category: data.category,
-      inventory: data.inventory,
+      stock: data.stock,
       description: data.description,
     };
   }
@@ -38,8 +38,29 @@ export class ProductService {
       title: product.title,
       price: product.price,
       category: product.category,
-      inventory: product.inventory,
+      stock: product.stock,
       description: product.description,
     };
+  }
+  static async decreaseStock(_id: string, quantityToDecrease: number) {
+    if (!ObjectId.isValid(_id)) throw new Error(`product id is invalid`);
+    const result = await productCollection.updateOne(
+      {
+        _id: new ObjectId(_id),
+        stock: { $gte: quantityToDecrease },
+      },
+      { $inc: { stock: -quantityToDecrease } },
+    );
+
+    if (result.matchedCount === 0) {
+      const findProdById = await productCollection.findOne({
+        _id: new ObjectId(_id),
+      });
+      if (!findProdById) {
+        throw new Error(`product ${_id} not exists`);
+      } else {
+        throw new Error(`product ${_id} is out of stock`);
+      }
+    }
   }
 }
