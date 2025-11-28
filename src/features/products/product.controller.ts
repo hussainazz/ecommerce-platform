@@ -36,7 +36,7 @@ const retriveProductById = async (
         title: product.title,
         price: product.price,
         category: product.category,
-        inventory: product.inventory,
+        stock: product.stock,
         description: product.description,
       },
     });
