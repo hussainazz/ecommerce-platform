@@ -10,8 +10,8 @@ export interface Payment {
   order_id: string;
   status: "success" | "fail" | "pending";
   amount: number;
-  created_at?: number;
-  canceled_at?: number;
+  created_at?: Date;
+  canceled_at?: Date;
 }
 
 export interface Product {
@@ -46,10 +46,10 @@ export interface Order {
     count: number;
   }[];
   user_id: string;
-  created_at?: number;
-  canceled_at?: number;
-  completed_at?: number;
-  confirmed_at?: number;
+  created_at?: Date;
+  canceled_at?: Date;
+  completed_at?: Date;
+  confirmed_at?: Date;
 }
 
 export interface User {
@@ -58,24 +58,15 @@ export interface User {
   password: string;
   email: string;
   role?: UserRole;
-  refresh_token?: {
-    tokenHash: string;
-    expiresAt: number;
-    createdAt: number;
-  };
-  refresh_tokens?: {
-    tokenHash: string;
-    expiresAt: number;
-    createdAt: number;
-  }[];
+  created_at: Date;
 }
 
 export interface RefToken {
   jti: string;
   userId: string;
   tokenHash: string;
-  expiresAt: number;
-  createdAt: number;
+  expires_at: Date;
+  created_at: Date;
 }
 
 declare global {
@@ -134,7 +125,7 @@ export const OrderSchema = z.object({
 });
 export const orderItemsScehema = z.array(
   z.object({
-    product: z.string(),
+    product_id: z.string(),
     count: z.number().min(1),
   }),
 );
