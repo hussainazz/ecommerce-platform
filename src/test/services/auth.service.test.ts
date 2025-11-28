@@ -13,13 +13,26 @@ let refTokenMaxAge = 30 * 24 * 60 * 60 * 1000;
 
 beforeAll(async () => {
   await userCollection.deleteMany({});
-  const testUser = await userCollection.insertOne({
-    username: "test username",
-    password: await bcrypt.hash("123456789", 12),
-    email: "test@test.com",
-    role: "user",
-  });
-  testID = testUser.insertedId;
+
+  try {
+    const hashedPassword = await bcrypt.hash("123456789", 12);
+    const testUser = await userCollection.insertOne({
+      username: "testusername",
+      password: hashedPassword,
+      email: "test@test.com",
+      created_at: new Date(),
+      role: "user",
+    });
+    testID = testUser.insertedId;
+  } catch (error: any) {
+    if (error.errInfo) {
+      console.error(
+        "Validation Error Details:",
+        JSON.stringify(error.errInfo.details),
+      );
+    }
+    throw error;
+  }
 });
 
 afterAll(async () => {
@@ -29,11 +42,13 @@ afterAll(async () => {
 describe("UserService - integrationTest", () => {
   it("should create a user", async () => {
     const user = await UserService.register({
-      username: "john",
+      username: "johnUsername",
       password: "johny123456",
       email: "john@johny.com",
     });
-    const findUser = await userCollection.findOne({ username: user.username });
+    const findUser = await userCollection.findOne({
+      username: user.username,
+    });
     expect(findUser?._id).toBeDefined();
     testID1 = findUser?._id!;
   });
@@ -98,7 +113,9 @@ describe("UserService - integrationTest", () => {
       refreshTokenRaw,
       refTokenMaxAge,
     );
-    const token = await tokenCollection.findOne({ userId: testID.toString() });
+    const token = await tokenCollection.findOne({
+      userId: testID.toString(),
+    });
     expect(token?.tokenHash).toBeDefined();
   });
 

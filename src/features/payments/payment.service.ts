@@ -6,9 +6,10 @@ export class PaymentService {
   static async create(
     data: Omit<Types.Payment, "_id" | "status" | "created_at" | "confirmed_at">,
   ): Promise<Types.Payment> {
-    const created_at = Date.now();
+    const created_at = new Date();
     const result = await paymentCollection.insertOne({
       ...data,
+      status: "pending",
       created_at,
     });
     return {
