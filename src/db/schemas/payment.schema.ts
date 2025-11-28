@@ -25,7 +25,6 @@ if (collections.length === 1) {
           status: {
             bsonType: "string",
             enum: ["success", "fail", "pending"],
-            default: "pending",
             description: "Payment status",
           },
           amount: {
@@ -34,11 +33,11 @@ if (collections.length === 1) {
             description: "Amount paid",
           },
           created_at: {
-            bsonType: "number",
+            bsonType: "date",
             description: "Timestamp of payment creation",
           },
           canceled_at: {
-            bsonType: "number",
+            bsonType: "date",
             description: "Timestamp of payment cancellation (optional)",
           },
         },

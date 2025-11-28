@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-export async function isAccessTokenValid(
+export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,

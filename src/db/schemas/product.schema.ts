@@ -20,7 +20,7 @@ if (collections.length === 1) {
             description: "Product title must be a string and is required",
           },
           price: {
-            bsonType: "long",
+            bsonType: "int",
             minimum: 0,
             description: "Price must be a positive number and is required",
           },
@@ -40,8 +40,8 @@ if (collections.length === 1) {
           },
         },
       },
-      validationLevel: "strict",
-      validationAction: "error",
     },
+    validationLevel: "strict",
+    validationAction: "error",
   });
 }

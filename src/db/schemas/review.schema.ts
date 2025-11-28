@@ -32,7 +32,7 @@ if (collections.length === 1) {
             description: "comment must be type of string",
           },
           created_at: {
-            bsonType: "number",
+            bsonType: "date",
             description: "when the review was created",
           },
         },

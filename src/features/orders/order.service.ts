@@ -1,12 +1,8 @@
 import { ObjectId } from "mongodb";
 import { orderCollection } from "@db/schemas/order.schema.ts";
 import * as Types from "@shared/types/types.ts";
-import { check, z } from "zod/mini";
 import { productCollection } from "@db/schemas/product.schema.ts";
-import { isObjectIdOrHexString } from "mongoose";
 import { ProductService } from "@features/products/product.service.ts";
-import { object, string } from "zod/v3";
-import { obj } from "find-config";
 
 export class OrderService {
   static async create(
@@ -20,33 +16,30 @@ export class OrderService {
         return prod.product_id;
       }
     });
-    const findProducts = await Promise.all(
+    const foundProducts = await Promise.all(
       orderProducts_IDs.map((prodId) =>
         productCollection.findOne({ _id: new ObjectId(prodId) }),
       ),
     );
-    if (findProducts.some((el) => !el)) {
+    if (foundProducts.some((el) => !el)) {
       throw new Error("at least one product id not exist");
     }
 
     let totalPrice = 0;
     const productStockMap = new Map();
-    for (const fndProd of findProducts) {
+    for (const fndProd of foundProducts) {
       productStockMap.set(fndProd?._id.toString(), fndProd);
     }
     for (const ordProd of orderProducts) {
       const prodPrice = productStockMap.get(ordProd.product_id).price;
-      const prodStock = productStockMap.get(ordProd.product_id).stock;
-      if (ordProd.count > prodStock) {
-        throw new Error(`product id ${ordProd.product_id} is out of stock`);
-      }
       totalPrice += prodPrice * ordProd.count;
       await ProductService.decreaseStock(ordProd.product_id, ordProd.count);
     }
 
-    const created_at = Date.now();
+    const created_at = new Date();
     const result = await orderCollection.insertOne({
       ...data,
+      status: "pending",
       created_at,
       totalPrice,
     });
@@ -105,23 +98,37 @@ export class OrderService {
 
   static async updateItems(
     _id: string,
-    items: { product: string; count: number }[],
+    newItems: { product_id: string; count: number }[],
   ) {
-    if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
-    const result = await orderCollection.updateOne(
-      { _id: new ObjectId(_id), status: "pending" },
-      { $set: { items } },
+    const orderToUpdate = await this.findById(_id);
+    const prevItemsMap = new Map(
+      orderToUpdate.products.map((prod) => [prod.product_id, prod.count]),
     );
-    if (result.matchedCount === 0) {
-      const findOrderById = await orderCollection.findOne({
-        _id: new ObjectId(_id),
-      });
-      if (!findOrderById) {
-        throw new Error(`order ${_id} not found`);
-      } else {
-        throw new Error(`order ${_id} status is not pending`);
+    let ops = [];
+    for (const item of newItems) {
+      const newId = item.product_id;
+      const newCount = item.count;
+      // if item is new, set this to 0
+      const prevCount = prevItemsMap.get(newId) || 0;
+
+      const delta = newCount - prevCount;
+      if (delta > 0) {
+        ops.push(ProductService.decreaseStock(newId, delta));
+      } else if (delta < 0) {
+        ops.push(ProductService.increaseStock(newId, -delta));
       }
+      prevItemsMap.delete(newId);
     }
+    for (const [removedItem_id, removedItem_count] of prevItemsMap) {
+      ops.push(ProductService.increaseStock(removedItem_id, removedItem_count));
+    }
+    await Promise.all([
+      ...ops,
+      orderCollection.updateOne(
+        { _id: new ObjectId(_id) },
+        { $set: { proudcts: newItems, updated_at: new Date() } },
+      ),
+    ]);
   }
 
   static async cancel(_id: string) {

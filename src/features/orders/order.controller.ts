@@ -103,7 +103,7 @@ const updateOrderItems = async (
       error: "order id not provided",
     });
   }
-  const reqBody = orderItemsScehema.safeParse(req.body.items);
+  const reqBody = orderItemsScehema.safeParse(req.body);
   if (!reqBody.success) {
     return res.status(400).json({
       status: "fail",

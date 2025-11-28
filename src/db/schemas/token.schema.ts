@@ -11,7 +11,7 @@ if (collections.length === 1) {
       $jsonSchema: {
         bsonType: "object",
         title: "Refresh Tokens",
-        required: ["jti", "userId", "tokenHash", "expDate", "createdAt"],
+        required: ["jti", "userId", "tokenHash", "expires_at", "created_at"],
         properties: {
           jti: {
             bsonType: "string",
@@ -22,11 +22,11 @@ if (collections.length === 1) {
           tokenHash: {
             bsonType: "string",
           },
-          expDate: {
-            bsonType: "number",
+          expires_at: {
+            bsonType: "date",
           },
-          createdAt: {
-            bsonType: "number",
+          created_at: {
+            bsonType: "date",
           },
         },
       },
