@@ -6,16 +6,17 @@ import bcrypt from "bcrypt";
 
 export class UserService {
   static async register(
-    data: Omit<Types.User, "_id" | "role">,
+    data: Omit<Types.User, "_id" | "role" | "created_at">,
   ): Promise<Types.User> {
     const passwordHash = await bcrypt.hash(data.password, 12);
-    const result = await userCollection.insertOne(data);
+    const result = await userCollection.insertOne({ ...data, role: "user" });
     return {
       _id: result.insertedId.toString(),
       username: data.username,
       password: passwordHash,
       email: data.email,
       role: "user", // for now;  must handle later
+      created_at: new Date(),
     };
   }
 
@@ -29,16 +30,16 @@ export class UserService {
     if (!jti || !tokenRaw || !userId || !maxAge)
       throw new Error("user id, token or exp date is missing");
     const tokenHash = await bcrypt.hash(tokenRaw, 12);
-    const createdAt = Date.now();
-    const expiresAt = maxAge + createdAt;
+    const created_at = new Date();
+    const expires_at = new Date(maxAge + Date.now());
     await tokenCollection.insertOne({
       jti,
       userId,
       tokenHash,
-      expiresAt,
-      createdAt,
+      expires_at,
+      created_at,
     });
-    return { jti, userId, tokenHash, expiresAt, createdAt };
+    return { jti, userId, tokenHash, expires_at, created_at };
   }
 
   static async findToken(jti: string) {

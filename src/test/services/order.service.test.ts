@@ -2,28 +2,42 @@ import { orderCollection } from "@db/schemas/order.schema.ts";
 import { OrderService } from "@features/orders/order.service.ts";
 import { ObjectId } from "mongodb";
 import { productCollection } from "@db/schemas/product.schema.ts";
-import { ProductService } from "@features/products/product.service.ts";
-import { database } from "@db/database.ts";
 let testID: string;
 
 beforeAll(async () => {
   await orderCollection.deleteMany({});
-  const testOrder = await orderCollection.insertOne({
-    status: "pending",
-    shipping_addres: {
-      street: "street - 1",
-      city: "tehran",
-      province: "tehran",
-      postCode: 3542024802,
-    },
-    totalPrice: 10000,
-    product: {
-      product_id: "test",
-      count: 2,
-    },
-    user_id: "test",
+  const testProduct = await productCollection.insertOne({
+    title: "titleTest",
+    price: 10000,
+    category: "test category",
+    stock: 100,
+    description: "a test doc",
   });
-  testID = testOrder.insertedId.toString();
+  try {
+    const testOrder = await orderCollection.insertOne({
+      status: "pending",
+      shipping_addres: {
+        street: "street - 1",
+        city: "tehran",
+        province: "tehran",
+        postCode: 3542024802,
+      },
+      totalPrice: 1203030,
+      product: {
+        product_id: testProduct.insertedId.toString(),
+        count: 2,
+      },
+      user_id: "test",
+    });
+    testID = testOrder.insertedId.toString();
+  } catch (error: any) {
+    if (error.errInfo) {
+      console.error(
+        "Validation Error Details:",
+        JSON.stringify(error.errInfo.details),
+      );
+    }
+  }
 });
 
 afterAll(async () => {
@@ -45,13 +59,14 @@ describe("OrderService - integrationTest", async () => {
     stock: 5,
     description: "a test doc",
   });
+
   it("should create new order and decrease product stock", async () => {
     const order = await OrderService.create({
       shipping_address: {
         street: "street 1001",
         city: "karaj",
         province: "alborz",
-        postCode: 2,
+        postCode: 2000000000,
       },
       products: [
         {
