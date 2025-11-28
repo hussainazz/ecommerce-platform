@@ -16,29 +16,24 @@ if (collections.length === 1) {
           email: {
             bsonType: "string",
             pattern: "^[^@]+@[^@]+\\.[^@]+$",
-            description: "email must be a string and is required",
           },
           username: {
             bsonType: "string",
-            description: "username must be a string and is required",
           },
           password: {
             bsonType: "string",
-            description: "password must be a string and is required",
           },
           role: {
             bsonType: "string",
-            description: "role must be a string and is required",
           },
-          createdAt: {
+          created_at: {
             bsonType: "date",
-            default: { $date: "$$NOW" },
           },
         },
       },
-      validationLevel: "strict",
-      validationAction: "error",
     },
+    validationLevel: "strict",
+    validationAction: "error",
   });
 }
 

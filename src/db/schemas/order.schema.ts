@@ -1,4 +1,3 @@
-import type { any } from "zod/v3";
 import { database } from "../database.ts";
 import type { Collection, MongoClient } from "mongodb";
 
@@ -15,7 +14,7 @@ if (collections.length === 1) {
         required: ["user_id", "items", "totalPrice", "status"],
         properties: {
           user_id: {
-            bsonType: "objectId",
+            bsonType: "string",
             description: "Reference to the User who placed the order",
           },
           products: {
@@ -51,19 +50,19 @@ if (collections.length === 1) {
               street: { bsonType: "string" },
               city: { bsonType: "string" },
               province: { bsonType: "string" },
-              postCode: { bsonType: "int", length: 10 },
+              postCode: { bsonType: "int" },
             },
           },
           status: {
             bsonType: "string",
             enum: ["completed", "confirmed", "pending", "canceled"],
-            default: "pending",
             description: "Current status of the order",
           },
-          created_at: { bsonType: "number" },
-          confirmed_at: { bsonType: "number" },
-          completed_at: { bsonType: "number" },
-          canceled_at: { bsonType: "number" },
+          created_at: { bsonType: "date" },
+          updated_at: { bsonType: "date" },
+          confirmed_at: { bsonType: "date" },
+          completed_at: { bsonType: "date" },
+          canceled_at: { bsonType: "date" },
         },
       },
       // ensure postcode is 10-digits
@@ -73,8 +72,8 @@ if (collections.length === 1) {
           { $lt: ["$postCode", 10000000000] },
         ],
       },
-      validationLevel: "strict",
-      validationAction: "error",
     },
+    validationLevel: "strict",
+    validationAction: "error",
   });
 }
