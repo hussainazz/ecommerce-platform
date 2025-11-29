@@ -1,8 +1,7 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { ProductService } from "@features/products/product.service.ts";
 import { database } from "@db/database.ts";
-import { reviewCollection } from "@db/schemas/review.schema.ts";
-import { ConnectionCheckOutStartedEvent, ObjectId } from "mongodb";
+import { Long } from "mongodb";
 let testID: any;
 
 beforeAll(async () => {
@@ -10,7 +9,7 @@ beforeAll(async () => {
   await productCollection.deleteMany({});
   const testProduct = await productCollection.insertOne({
     title: "test title",
-    price: 10000,
+    price: new Long(10000),
     category: "test category",
     stock: 100,
     description: "a test doc",
@@ -26,7 +25,7 @@ describe("ProductService - integrationTest", () => {
   it("Should create a product", async () => {
     const product = await ProductService.create({
       title: "plastic car",
-      price: 100000,
+      price: BigInt(100000),
       category: "toy",
       stock: 1000,
       description: "a car toy made for kids older than 3",

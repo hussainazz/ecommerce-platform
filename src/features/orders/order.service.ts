@@ -3,45 +3,47 @@ import { orderCollection } from "@db/schemas/order.schema.ts";
 import * as Types from "@shared/types/types.ts";
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { ProductService } from "@features/products/product.service.ts";
+import { Long } from "mongodb";
 
 export class OrderService {
   static async create(
     data: Pick<Types.Order, "shipping_address" | "products" | "user_id">,
   ): Promise<Types.Order> {
-    const orderProducts = data.products;
-    const orderProducts_IDs = orderProducts.map((prod) => {
+    const orderProducts = data.products.map((prod) => {
       if (!ObjectId.isValid(prod.product_id)) {
-        throw new Error("product id not valid");
-      } else {
-        return prod.product_id;
+        throw new Error(`product id ${prod.product_id} not valid`);
       }
+      return { ...prod, product_id: new ObjectId(prod.product_id) };
     });
     const foundProducts = await Promise.all(
-      orderProducts_IDs.map((prodId) =>
-        productCollection.findOne({ _id: new ObjectId(prodId) }),
+      orderProducts.map((prod) =>
+        productCollection.findOne({ _id: prod.product_id }),
       ),
     );
     if (foundProducts.some((el) => !el)) {
       throw new Error("at least one product id not exist");
     }
 
-    let totalPrice = 0;
-    const productStockMap = new Map();
-    for (const fndProd of foundProducts) {
-      productStockMap.set(fndProd?._id.toString(), fndProd);
-    }
+    let totalPrice = BigInt(0);
+    const foundProductsMap = new Map(
+      foundProducts.map((prod) => [prod._id.toString(), prod]),
+    );
     for (const ordProd of orderProducts) {
-      const prodPrice = productStockMap.get(ordProd.product_id).price;
-      totalPrice += prodPrice * ordProd.count;
+      const prodPrice = foundProductsMap.get(
+        ordProd.product_id.toString(),
+      ).price;
+      totalPrice += BigInt(prodPrice.toString()) * BigInt(ordProd.count);
       await ProductService.decreaseStock(ordProd.product_id, ordProd.count);
     }
 
     const created_at = new Date();
     const result = await orderCollection.insertOne({
       ...data,
+      product: orderProducts,
+      user_id: new ObjectId(data.user_id),
       status: "pending",
       created_at,
-      totalPrice,
+      totalPrice: Long.fromBigInt(totalPrice),
     });
     return {
       _id: result.insertedId.toString(),
@@ -102,7 +104,10 @@ export class OrderService {
   ) {
     const orderToUpdate = await this.findById(_id);
     const prevItemsMap = new Map(
-      orderToUpdate.products.map((prod) => [prod.product_id, prod.count]),
+      orderToUpdate.products.map((prod) => [
+        prod.product_id.toString(),
+        prod.count,
+      ]),
     );
     let ops = [];
     for (const item of newItems) {
@@ -135,7 +140,7 @@ export class OrderService {
     if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
     const canceledOrder = await orderCollection.findOneAndUpdate(
       { _id: new ObjectId(_id) },
-      { $set: { status: "canceled", canceled_at: Date.now() } },
+      { $set: { status: "canceled", canceled_at: new Date() } },
     );
     if (!canceledOrder) {
       throw new Error("no order found to cancel");
@@ -151,7 +156,7 @@ export class OrderService {
     if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
     const confirmedOrder = await orderCollection.updateOne(
       { _id: new ObjectId(_id) },
-      { $set: { status: "confirmed", confirmed_at: Date.now() } },
+      { $set: { status: "confirmed", confirmed_at: new Date() } },
     );
     if (confirmedOrder.modifiedCount !== 1)
       throw new Error("no order found to confirm");
@@ -161,7 +166,7 @@ export class OrderService {
     if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
     const completedOrder = await orderCollection.updateOne(
       { _id: new ObjectId(_id) },
-      { $set: { status: "completed", completed_at: Date.now() } },
+      { $set: { status: "completed", completed_at: new Date() } },
     );
     if (completedOrder.modifiedCount !== 1)
       throw new Error("no order found to complete");

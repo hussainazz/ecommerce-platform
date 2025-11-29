@@ -1,12 +1,15 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
 import * as Types from "@shared/types/types.ts";
-import { ObjectId } from "mongodb";
+import { Long, ObjectId } from "mongodb";
 
 export class ProductService {
   static async create(
     data: Omit<Types.Product, "_id" | "constructor">,
   ): Promise<Types.Product> {
-    const result = await productCollection.insertOne(data);
+    const result = await productCollection.insertOne({
+      ...data,
+      price: Long.fromBigInt(data.price),
+    });
     return {
       _id: result.insertedId.toString(),
       title: data.title,
@@ -42,11 +45,17 @@ export class ProductService {
       description: product.description,
     };
   }
-  static async decreaseStock(_id: string, quantityToDecrease: number) {
-    if (!ObjectId.isValid(_id)) throw new Error(`product id is invalid`);
+  static async decreaseStock(
+    _id: ObjectId | string,
+    quantityToDecrease: number,
+  ) {
+    if (typeof _id === "string") {
+      if (!ObjectId.isValid(_id)) throw new Error(`product id is invalid`);
+      _id = new ObjectId(_id);
+    }
     const result = await productCollection.updateOne(
       {
-        _id: new ObjectId(_id),
+        _id,
         stock: { $gte: quantityToDecrease },
       },
       { $inc: { stock: -quantityToDecrease } },
@@ -54,7 +63,7 @@ export class ProductService {
 
     if (result.matchedCount === 0) {
       const findProdById = await productCollection.findOne({
-        _id: new ObjectId(_id),
+        _id,
       });
       if (!findProdById) {
         throw new Error(`product ${_id} not exists`);
@@ -63,12 +72,16 @@ export class ProductService {
       }
     }
   }
-  static async increaseStock(_id: string, quantityToIncrease: number) {
-    if (!ObjectId.isValid(_id)) throw new Error(`product id is invalid`);
+  static async increaseStock(
+    _id: string | ObjectId,
+    quantityToIncrease: number,
+  ) {
+    if (typeof _id === "string") {
+      if (!ObjectId.isValid(_id)) throw new Error(`product id is invalid`);
+      _id = new ObjectId(_id);
+    }
     const result = await productCollection.updateOne(
-      {
-        _id: new ObjectId(_id),
-      },
+      { _id },
       { $inc: { stock: +quantityToIncrease } },
     );
     if (result.matchedCount === 0) {

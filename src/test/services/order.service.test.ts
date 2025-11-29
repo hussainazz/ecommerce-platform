@@ -2,42 +2,31 @@ import { orderCollection } from "@db/schemas/order.schema.ts";
 import { OrderService } from "@features/orders/order.service.ts";
 import { ObjectId } from "mongodb";
 import { productCollection } from "@db/schemas/product.schema.ts";
+import { Long } from "mongodb";
 let testID: string;
 
 beforeAll(async () => {
   await orderCollection.deleteMany({});
   const testProduct = await productCollection.insertOne({
     title: "titleTest",
-    price: 10000,
+    price: new Long(10000),
     category: "test category",
     stock: 100,
     description: "a test doc",
   });
-  try {
-    const testOrder = await orderCollection.insertOne({
-      status: "pending",
-      shipping_addres: {
-        street: "street - 1",
-        city: "tehran",
-        province: "tehran",
-        postCode: 3542024802,
-      },
-      totalPrice: 1203030,
-      product: {
-        product_id: testProduct.insertedId.toString(),
-        count: 2,
-      },
-      user_id: "test",
-    });
-    testID = testOrder.insertedId.toString();
-  } catch (error: any) {
-    if (error.errInfo) {
-      console.error(
-        "Validation Error Details:",
-        JSON.stringify(error.errInfo.details),
-      );
-    }
-  }
+  const testOrder = await orderCollection.insertOne({
+    status: "pending",
+    shipping_address: {
+      street: "street - 1",
+      city: "tehran",
+      province: "tehran",
+      postCode: new Long(3000000000),
+    },
+    totalPrice: new Long(1203030),
+    products: [{ product_id: testProduct.insertedId, count: 2 }],
+    user_id: new ObjectId("507f1f77bcf86cd799439013"),
+  });
+  testID = testOrder.insertedId.toString();
 });
 
 afterAll(async () => {
@@ -46,15 +35,16 @@ afterAll(async () => {
 
 describe("OrderService - integrationTest", async () => {
   const testProduct_0 = await productCollection.insertOne({
-    title: "test0",
-    price: 20000,
+    title: "testss0",
+    price: new Long(20000),
     category: "test category",
     stock: 5,
     description: "a test doc",
   });
+
   const testProduct_1 = await productCollection.insertOne({
     title: "test1",
-    price: 10000,
+    price: new Long(20000),
     category: "test category",
     stock: 5,
     description: "a test doc",
@@ -66,19 +56,19 @@ describe("OrderService - integrationTest", async () => {
         street: "street 1001",
         city: "karaj",
         province: "alborz",
-        postCode: 2000000000,
+        postCode: BigInt(2000000000),
       },
       products: [
         {
-          product_id: testProduct_0.insertedId.toString(),
+          product_id: testProduct_0.insertedId,
           count: 3,
         },
         {
-          product_id: testProduct_1.insertedId.toString(),
+          product_id: testProduct_1.insertedId,
           count: 3,
         },
       ],
-      user_id: "test",
+      user_id: testID,
     });
     const findOrder = await orderCollection.findOne({
       _id: new ObjectId(order._id),
@@ -97,7 +87,7 @@ describe("OrderService - integrationTest", async () => {
           street: "street 1001",
           city: "karaj",
           province: "alborz",
-          postCode: 2000000000,
+          postCode: BigInt(2000000000),
         },
         products: [
           {
@@ -105,7 +95,7 @@ describe("OrderService - integrationTest", async () => {
             count: 10,
           },
         ],
-        user_id: "test",
+        user_id: testID,
       });
     } catch (e: any) {
       expect(e.message).toContain("out of stock");
@@ -119,7 +109,7 @@ describe("OrderService - integrationTest", async () => {
           street: "street 1001",
           city: "karaj",
           province: "alborz",
-          postCode: 2000000000,
+          postCode: BigInt(2000000000),
         },
         products: [
           {
@@ -127,7 +117,7 @@ describe("OrderService - integrationTest", async () => {
             count: 10,
           },
         ],
-        user_id: "test",
+        user_id: testID,
       });
     } catch (e: any) {
       expect(e.message).toContain("product id not exist");
