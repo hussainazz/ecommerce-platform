@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { Long, ObjectId } from "mongodb";
 import { paymentCollection } from "@db/schemas/payment.schema.ts";
 import * as Types from "@shared/types/types.ts";
 
@@ -9,6 +9,9 @@ export class PaymentService {
     const created_at = new Date();
     const result = await paymentCollection.insertOne({
       ...data,
+      user_id: new ObjectId(data.user_id),
+      order_id: new ObjectId(data.order_id),
+      amount: Long.fromBigInt(data.amount),
       status: "pending",
       created_at,
     });

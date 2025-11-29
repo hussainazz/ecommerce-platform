@@ -1,4 +1,3 @@
-import { productCollection } from "@db/schemas/product.schema.ts";
 import type { ObjectId } from "mongodb";
 import z from "zod";
 export type UserRole = "user" | "admin";
@@ -9,7 +8,7 @@ export interface Payment {
   user_id: string;
   order_id: string;
   status: "success" | "fail" | "pending";
-  amount: number;
+  amount: bigint;
   created_at?: Date;
   canceled_at?: Date;
 }
@@ -17,7 +16,7 @@ export interface Payment {
 export interface Product {
   _id?: string;
   title: string;
-  price: number;
+  price: bigint;
   category: string;
   stock: number;
   description: string | null;
@@ -38,9 +37,9 @@ export interface Order {
     street: string;
     city: string;
     province: string;
-    postCode: number;
+    postCode: bigint;
   };
-  totalPrice: number;
+  totalPrice: bigint;
   products: {
     product_id: string;
     count: number;

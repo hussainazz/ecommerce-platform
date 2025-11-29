@@ -11,10 +11,10 @@ if (collections.length === 1) {
       $jsonSchema: {
         bsonType: "object",
         title: "Order Validation",
-        required: ["user_id", "items", "totalPrice", "status"],
+        required: ["user_id", "products", "totalPrice", "status"],
         properties: {
           user_id: {
-            bsonType: "string",
+            bsonType: "objectId",
             description: "Reference to the User who placed the order",
           },
           products: {
@@ -26,7 +26,7 @@ if (collections.length === 1) {
               required: ["product_id", "count"],
               properties: {
                 product_id: {
-                  bsonType: "string",
+                  bsonType: "objectId",
                   description: "Reference to the Product",
                 },
                 count: {
@@ -44,13 +44,12 @@ if (collections.length === 1) {
           },
           shipping_address: {
             bsonType: "object",
-            description: "Optional shipping details",
             required: ["street", "city", "province", "postCode"],
             properties: {
               street: { bsonType: "string" },
               city: { bsonType: "string" },
               province: { bsonType: "string" },
-              postCode: { bsonType: "int" },
+              postCode: { bsonType: "long" },
             },
           },
           status: {
@@ -68,8 +67,8 @@ if (collections.length === 1) {
       // ensure postcode is 10-digits
       $expr: {
         $and: [
-          { $gte: ["$postCode", 1000000000] },
-          { $lt: ["$postCode", 10000000000] },
+          { $gte: ["$shipping_address.postCode", 1000000000] },
+          { $lt: ["$shipping_address.postCode", 10000000000] },
         ],
       },
     },

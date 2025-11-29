@@ -16,34 +16,28 @@ if (collections.length === 1) {
         properties: {
           user_id: {
             bsonType: "objectId",
-            description: "Reference to the User making the payment",
           },
           order_id: {
             bsonType: "objectId",
-            description: "Reference to the associated Order",
           },
           status: {
             bsonType: "string",
             enum: ["success", "fail", "pending"],
-            description: "Payment status",
           },
           amount: {
             bsonType: "long",
             minimum: 1,
-            description: "Amount paid",
           },
           created_at: {
             bsonType: "date",
-            description: "Timestamp of payment creation",
           },
           canceled_at: {
             bsonType: "date",
-            description: "Timestamp of payment cancellation (optional)",
           },
         },
       },
-      validationLevel: "strict",
-      validationAction: "error",
     },
+    validationLevel: "strict",
+    validationAction: "error",
   });
 }

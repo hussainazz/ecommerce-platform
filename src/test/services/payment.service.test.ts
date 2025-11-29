@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { Long, ObjectId } from "mongodb";
 import { paymentCollection } from "@db/schemas/payment.schema.ts";
 import { PaymentService } from "@features/payments/payment.service.ts";
 
@@ -7,10 +7,11 @@ let testID: string;
 beforeAll(async () => {
   await paymentCollection.deleteMany({});
   const testPayment = await paymentCollection.insertOne({
-    user_id: "test",
-    order_id: "test",
+    user_id: new ObjectId("507f1f77bcf86cd799439011"),
+    order_id: new ObjectId("507f1f77bcf86cd799439011"),
     status: "pending",
-    amount: 1200,
+    amount: new Long(1200),
+    created_at: new Date(),
   });
   testID = testPayment.insertedId.toString();
 });
@@ -22,9 +23,9 @@ afterAll(async () => {
 describe("PaymentService - integrationTest", () => {
   it("should create a payment", async () => {
     const payment = await PaymentService.create({
-      user_id: "2",
-      order_id: "3",
-      amount: 1200,
+      user_id: "507f1f77bcf8acd790439010",
+      order_id: "507f1f77bcf8acd790439010",
+      amount: BigInt(1200),
     });
     const findPayment = await paymentCollection.findOne({
       _id: new ObjectId(payment._id),
