@@ -1,7 +1,7 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { reviewCollection } from "@db/schemas/review.schema.ts";
 import { ReviewService } from "@features/reviews/review.service.ts";
-import { ObjectId } from "mongodb";
+import { Long, ObjectId } from "mongodb";
 
 let test_reviewID: ObjectId | undefined;
 let test_productID: string;
@@ -24,22 +24,22 @@ beforeAll(async () => {
   await reviewCollection.deleteMany({});
   const prodForTest = await productCollection.insertOne({
     title: "Test",
-    price: 100,
+    price: new Long(100),
     category: "test",
-    inventory: 10,
+    stock: 10,
   });
   test_productID = prodForTest.insertedId.toString();
   const testReview = await reviewCollection.insertOne({
-    product_id: test_productID,
-    user_id: "507f1f77bcf86cd799439011",
+    product_id: new ObjectId(test_productID),
+    user_id: new ObjectId("507f1f77bcf86cd799439011"),
     rate: 4,
     comment: "test comment",
   });
   const soldOutProd = await productCollection.insertOne({
     title: "tst",
-    price: 300,
+    price: new Long(300),
     category: "tst",
-    inventory: 0,
+    stock: 0,
   });
   test_noStockProdID = soldOutProd.insertedId.toString();
 });
@@ -65,7 +65,7 @@ describe("ReviewService - integratoinTest", () => {
     await reviewCollection.deleteMany({});
     await ReviewService.add(test_productID, test_userID1, newReview1);
     await expect(
-      ReviewService.add(test_productID, test_userID1, newReview2),
+      ReviewService.add(test_productID.toString(), test_userID1, newReview2),
     ).rejects.toThrow("one user can't add multiple reviews for one product");
   });
   it("should throw when review adding for non-existent product", async () => {
@@ -73,7 +73,7 @@ describe("ReviewService - integratoinTest", () => {
       ReviewService.add(test_nonExistProdID, test_userID1, newReview1),
     ).rejects.toThrow("product no longer exist");
   });
-  it("should throw when review adding for sold out product", async () => {
+  it("should throw adding review for sold out product", async () => {
     await expect(
       ReviewService.add(test_noStockProdID, test_userID1, newReview1),
     ).rejects.toThrow("product is sold out");
