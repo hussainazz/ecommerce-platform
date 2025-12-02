@@ -23,11 +23,12 @@ export interface Product {
 }
 
 export interface Review {
-  _id?: string;
+  _id: string;
   product_id: string;
   user_id: string;
   rate: 1 | 2 | 3 | 4 | 5;
   comment: string;
+  created_at: Date;
 }
 
 export interface Order {
@@ -107,18 +108,19 @@ export const LoginSchema = z.object({
 });
 export const OrderSchema = z.object({
   shipping_address: z.object({
-    street: z.string(),
-    city: z.string(),
-    province: z.string(),
+    street: z.string().min(1),
+    city: z.string().min(1),
+    province: z.string().min(1),
     postCode: z
-      .number()
-      .gte(1000000000, "post code must be a 10-digit number.")
-      .lt(10000000000, "post code must be a 10-digit number."),
+      .string()
+      .regex(/^\d{10}$/, "Post code must be exactly 10 digits")
+      .transform((val) => BigInt(val)),
   }),
+  amount: z.coerce.bigint().positive(),
   products: z.array(
     z.object({
-      product_id: z.string(),
-      count: z.number().min(1, "count must be more than 0"),
+      product_id: z.string().min(1),
+      count: z.number().int().min(1, "Count must be at least 1"),
     }),
   ),
 });
@@ -128,3 +130,8 @@ export const orderItemsScehema = z.array(
     count: z.number().min(1),
   }),
 );
+
+export const PaymentSchema = z.object({
+  order_id: z.string(),
+  amount: z.coerce.bigint(),
+});
