@@ -21,3 +21,14 @@ export async function authMiddleware(
     res.status(401).json({ error: "TOKEN_EXPIRED", action: "refresh" });
   }
 }
+
+export const requireUserId = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (!req.userId) {
+    return next(new Error("authentication required: userId missing"));
+  }
+  next();
+};

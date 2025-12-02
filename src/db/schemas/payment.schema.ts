@@ -31,7 +31,10 @@ if (collections.length === 1) {
           created_at: {
             bsonType: "date",
           },
-          canceled_at: {
+          successed: {
+            bsonType: "date",
+          },
+          failed_at: {
             bsonType: "date",
           },
         },
