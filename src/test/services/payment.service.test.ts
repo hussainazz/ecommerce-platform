@@ -1,6 +1,8 @@
 import { Long, ObjectId } from "mongodb";
 import { paymentCollection } from "@db/schemas/payment.schema.ts";
 import { PaymentService } from "@features/payments/payment.service.ts";
+import { orderCollection } from "@db/schemas/order.schema.ts";
+import { productCollection } from "@db/schemas/product.schema.ts";
 
 let testID: string;
 
@@ -20,12 +22,30 @@ afterAll(async () => {
   await paymentCollection.deleteMany({});
 });
 
-describe("PaymentService - integrationTest", () => {
+describe("PaymentService - integrationTest", async () => {
+  const testProduct = await productCollection.insertOne({
+    title: "titleTest",
+    price: new Long(10000),
+    category: "test category",
+    stock: 100,
+    description: "a test doc",
+  });
+  const testOrder = await orderCollection.insertOne({
+    status: "pending",
+    shipping_address: {
+      street: "street - 1",
+      city: "tehran",
+      province: "tehran",
+      postCode: new Long(3000000000),
+    },
+    totalPrice: new Long(1203030),
+    products: [{ product_id: testProduct.insertedId, count: 2 }],
+    user_id: new ObjectId("507f1f77bcf86cd799439013"),
+  });
   it("should create a payment", async () => {
     const payment = await PaymentService.create({
       user_id: "507f1f77bcf8acd790439010",
-      order_id: "507f1f77bcf8acd790439010",
-      amount: BigInt(1200),
+      order_id: testOrder.insertedId.toString(),
     });
     const findPayment = await paymentCollection.findOne({
       _id: new ObjectId(payment._id),

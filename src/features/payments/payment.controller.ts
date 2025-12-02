@@ -1,23 +1,20 @@
-import { PaymentSchema } from "@shared/types/types.ts";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
-import { z } from "zod/mini";
 import { PaymentService } from "./payment.service.ts";
 import { requireUserId } from "@shared/middlewares/auth.middleware.ts";
 
 const router = express.Router();
 
 const addPayment = async (req: Request, res: Response, next: NextFunction) => {
-  const reqBody = PaymentSchema.safeParse(req.body);
-  if (!reqBody.success) {
+  const order_id = req.body.orderId;
+  if (!order_id) {
     return res.status(400).json({
-      status: "fail",
-      error: z.prettifyError(reqBody.error),
+      error: "orderId must provided",
     });
   }
   try {
     const result = await PaymentService.create({
-      ...reqBody.data,
+      order_id,
       user_id: req.userId!,
     });
     res.status(201).json({
