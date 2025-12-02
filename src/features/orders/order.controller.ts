@@ -155,3 +155,5 @@ router
   .delete(deleteOrder)
   .put(updateOrderItems)
   .patch(updateOrderStatus);
+
+export { router as orderRouter };
