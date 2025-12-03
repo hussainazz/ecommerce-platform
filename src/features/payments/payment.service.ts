@@ -1,33 +1,36 @@
 import { Long, ObjectId } from "mongodb";
 import { paymentCollection } from "@db/schemas/payment.schema.ts";
 import * as Types from "@shared/types/types.ts";
-import { obj } from "find-config";
 import { orderCollection } from "@db/schemas/order.schema.ts";
 
 export class PaymentService {
   static async create(
     data: Omit<
       Types.Payment,
-      "_id" | "status" | "created_at" | "confirmed_at" | "amount"
+      "_id" | "status" | "created_at" | "confirmed_at" | "authority"
     >,
-  ): Promise<Types.Payment> {
+  ): Promise<Omit<Types.Payment, "authority">> {
     const created_at = new Date();
     if (!ObjectId.isValid(data.order_id))
       throw new Error("order id is invalid");
-    const orderAmount = await orderCollection.findOne(
+    const actulOrderAmount = await orderCollection.findOne(
       {
         _id: new ObjectId(data.order_id),
       },
       { projection: { totalPrice: 1 } },
     );
-    if (!orderAmount) {
-      throw new Error("order is not exist");
+    if (!actulOrderAmount) {
+      throw new Error("order doesn't exist");
+    }
+    if (actulOrderAmount.totalPrice != data.amount) {
+      throw new Error("order price and passed amount don't match");
     }
     const result = await paymentCollection.insertOne({
       ...data,
       user_id: new ObjectId(data.user_id),
       order_id: new ObjectId(data.order_id),
-      amount: new Long(orderAmount.totalPrice),
+      amount: new Long(actulOrderAmount.totalPrice),
+      authority: null,
       status: "pending",
       created_at,
     });
@@ -36,15 +39,27 @@ export class PaymentService {
       user_id: data.user_id,
       order_id: data.order_id,
       status: "pending",
-      amount: orderAmount.totalPrice,
+      amount: BigInt(actulOrderAmount.totalPrice.toString()),
       created_at,
     };
   }
 
-  static async success(_id: string) {
-    if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
+  static async addAuthority(_id: string, authority: string) {
+    if (!authority) {
+      throw new Error("authority must be provided");
+    }
     const result = await paymentCollection.updateOne(
-      { _id: new ObjectId(_id) },
+      { _id: new ObjectId(_id), status: "pending" },
+      { $set: { authority } },
+    );
+    if (result.matchedCount !== 1) {
+      throw new Error("can't update the payment");
+    }
+  }
+
+  static async success(authority: string) {
+    const result = await paymentCollection.updateOne(
+      { authority },
       { $set: { status: "success" } },
     );
     if (result.matchedCount !== 1) {
@@ -53,10 +68,9 @@ export class PaymentService {
     return result;
   }
 
-  static async fail(_id: string) {
-    if (!ObjectId.isValid(_id)) throw new Error("order id is invalid");
+  static async fail(authority: string) {
     const result = await paymentCollection.updateOne(
-      { _id: new ObjectId(_id) },
+      { authority },
       { $set: { status: "fail" } },
     );
     if (result.matchedCount !== 1) {

@@ -9,6 +9,7 @@ export interface Payment {
   order_id: string;
   status: "success" | "fail" | "pending";
   amount: bigint;
+  authority: string | null;
   created_at?: Date;
   canceled_at?: Date;
 }
