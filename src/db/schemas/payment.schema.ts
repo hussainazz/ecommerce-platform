@@ -28,6 +28,9 @@ if (collections.length === 1) {
             bsonType: "long",
             minimum: 1,
           },
+          authority: {
+            bsonType: ["string", "null"],
+          },
           created_at: {
             bsonType: "date",
           },
