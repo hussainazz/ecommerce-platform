@@ -1,10 +1,6 @@
 import express from "express";
-import { configDotenv } from "dotenv";
-import findConfig from "find-config";
 import cookieParser from "cookie-parser";
 import { routerV1 } from "routes/index.ts";
-
-configDotenv({ path: findConfig(".env")! });
 
 const app = express();
 app.listen(process.env.PORT, async () => {
