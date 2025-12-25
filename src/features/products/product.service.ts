@@ -1,6 +1,6 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
 import * as Types from "@shared/types/types.ts";
-import { Long, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 
 export class ProductService {
   static async create(
@@ -8,7 +8,7 @@ export class ProductService {
   ): Promise<Types.Product> {
     const result = await productCollection.insertOne({
       ...data,
-      price: Long.fromBigInt(data.price),
+      price: data.price,
     });
     return {
       _id: result.insertedId.toString(),

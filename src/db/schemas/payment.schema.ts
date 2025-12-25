@@ -25,7 +25,7 @@ if (collections.length === 1) {
             enum: ["success", "fail", "pending"],
           },
           amount: {
-            bsonType: "long",
+            bsonType: "number",
             minimum: 1,
           },
           authority: {

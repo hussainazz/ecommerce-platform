@@ -38,7 +38,7 @@ if (collections.length === 1) {
             },
           },
           totalPrice: {
-            bsonType: "long",
+            bsonType: "number",
             minimum: 0,
             description: "Total cost of the order",
           },
@@ -49,7 +49,7 @@ if (collections.length === 1) {
               street: { bsonType: "string" },
               city: { bsonType: "string" },
               province: { bsonType: "string" },
-              postCode: { bsonType: "long" },
+              postCode: { bsonType: "number" },
             },
           },
           status: {

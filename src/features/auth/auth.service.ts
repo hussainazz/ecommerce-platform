@@ -73,6 +73,7 @@ export class UserService {
       password: result.password,
       email: result.email,
       role: result.role,
+      created_at: result.created_at,
     };
   }
 
@@ -111,7 +112,7 @@ export class UserService {
   static async findByPassword(_id: string, password: string) {
     if (!ObjectId.isValid(_id)) throw new Error("Invalid user id");
     const user = await this.findById(_id);
-    const isMatch = await bcrypt.compare(user.password, password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (isMatch) return user;
     return false;
   }

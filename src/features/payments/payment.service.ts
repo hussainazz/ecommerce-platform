@@ -1,4 +1,4 @@
-import { Long, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import { paymentCollection } from "@db/schemas/payment.schema.ts";
 import * as Types from "@shared/types/types.ts";
 import { orderCollection } from "@db/schemas/order.schema.ts";
@@ -29,7 +29,7 @@ export class PaymentService {
       ...data,
       user_id: new ObjectId(data.user_id),
       order_id: new ObjectId(data.order_id),
-      amount: new Long(actulOrderAmount.totalPrice),
+      amount: actulOrderAmount.totalPrice,
       authority: null,
       status: "pending",
       created_at,
@@ -39,7 +39,7 @@ export class PaymentService {
       user_id: data.user_id,
       order_id: data.order_id,
       status: "pending",
-      amount: BigInt(actulOrderAmount.totalPrice.toString()),
+      amount: actulOrderAmount.totalPrice,
       created_at,
     };
   }
@@ -56,7 +56,6 @@ export class PaymentService {
       throw new Error("can't update the payment");
     }
   }
-
   static async success(authority: string) {
     const result = await paymentCollection.updateOne(
       { authority },
