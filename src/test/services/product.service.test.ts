@@ -1,31 +1,33 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { ProductService } from "@features/products/product.service.ts";
-import { database } from "@db/database.ts";
-import { Long } from "mongodb";
-let testID: any;
+import { v4 as uuidv4 } from "uuid";
+import { ObjectId } from "mongodb";
 
-beforeAll(async () => {
-  await database.collection("Product").drop();
-  await productCollection.deleteMany({});
-  const testProduct = await productCollection.insertOne({
-    title: "test title",
-    price: new Long(10000),
+// Helper
+async function createTestProduct() {
+  const result = await productCollection.insertOne({
+    title: `test title ${uuidv4()}`,
+    price: 10000,
     category: "test category",
     stock: 100,
     description: "a test doc",
   });
-  testID = testProduct.insertedId.toString();
-});
-
-afterAll(async () => {
-  await productCollection.deleteMany({});
-});
+  return result.insertedId.toString();
+}
 
 describe("ProductService - integrationTest", () => {
+  beforeEach(async () => {
+    await productCollection.deleteMany({});
+  });
+
+  afterAll(async () => {
+    await productCollection.deleteMany({});
+  });
+
   it("Should create a product", async () => {
     const product = await ProductService.create({
       title: "plastic car",
-      price: BigInt(100000),
+      price: 100000,
       category: "toy",
       stock: 1000,
       description: "a car toy made for kids older than 3",
@@ -37,24 +39,28 @@ describe("ProductService - integrationTest", () => {
   });
 
   it("should find the product", async () => {
-    const product = await ProductService.findById(testID);
+    const productId = await createTestProduct();
+    const product = await ProductService.findById(productId);
     expect(product?._id).toBeDefined();
   });
 
   it("should throw when finding non-existing product", async () => {
+    const randomId = new ObjectId().toString();
     await expect(
-      ProductService.findById("507f1f77bcf86cd799439011"),
+      ProductService.findById(randomId),
     ).rejects.toThrow(`no product was found`);
   });
 
   it("should throw when deleting non-existing product", async () => {
+    const randomId = new ObjectId().toString();
     await expect(
-      ProductService.delete("507f1f77bcf86cd799439011"),
+      ProductService.delete(randomId),
     ).rejects.toThrow(`no product was found to delete`);
   });
 
   it("should delete the product", async () => {
-    const product = await ProductService.delete(testID);
-    expect(product.deletedCount).toEqual(1);
+    const productId = await createTestProduct();
+    const result = await ProductService.delete(productId);
+    expect(result.deletedCount).toEqual(1);
   });
 });

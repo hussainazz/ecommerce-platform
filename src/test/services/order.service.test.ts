@@ -2,100 +2,106 @@ import { orderCollection } from "@db/schemas/order.schema.ts";
 import { OrderService } from "@features/orders/order.service.ts";
 import { ObjectId } from "mongodb";
 import { productCollection } from "@db/schemas/product.schema.ts";
-import { Long } from "mongodb";
-let testID: string;
+import { v4 as uuidv4 } from "uuid";
 
-beforeAll(async () => {
-  await orderCollection.deleteMany({});
-  const testProduct = await productCollection.insertOne({
-    title: "titleTest",
-    price: new Long(10000),
+// Helper to create a test product
+async function createTestProduct(overrides: {
+  title?: string;
+  price?: number;
+  stock?: number;
+} = {}) {
+  const result = await productCollection.insertOne({
+    title: overrides.title || `Product ${uuidv4()}`,
+    price: overrides.price ?? 10000,
     category: "test category",
-    stock: 100,
+    stock: overrides.stock ?? 100,
     description: "a test doc",
   });
-  const testOrder = await orderCollection.insertOne({
-    status: "pending",
+  return { ...overrides, _id: result.insertedId };
+}
+
+// Helper to create a test order
+async function createTestOrder(overrides: {
+  status?: string;
+  products?: { product_id: ObjectId; count: number }[];
+} = {}) {
+  // If no products provided, create a dummy one
+  let products = overrides.products;
+  if (!products) {
+    const prod = await createTestProduct();
+    products = [{ product_id: prod._id, count: 1 }];
+  }
+
+  const result = await orderCollection.insertOne({
+    status: overrides.status || "pending",
     shipping_address: {
       street: "street - 1",
       city: "tehran",
       province: "tehran",
-      postCode: new Long(3000000000),
+      postCode: 3000000000,
     },
-    totalPrice: new Long(1203030),
-    products: [{ product_id: testProduct.insertedId, count: 2 }],
+    totalPrice: 1203030,
+    products: products,
     user_id: new ObjectId("507f1f77bcf86cd799439013"),
   });
-  testID = testOrder.insertedId.toString();
-});
+  return result.insertedId.toString();
+}
 
-afterAll(async () => {
-  await orderCollection.deleteMany({});
-});
-
-describe("OrderService - integrationTest", async () => {
-  const testProduct_0 = await productCollection.insertOne({
-    title: "testss0",
-    price: new Long(20000),
-    category: "test category",
-    stock: 5,
-    description: "a test doc",
+describe("OrderService - integrationTest", () => {
+  beforeEach(async () => {
+    await orderCollection.deleteMany({});
+    await productCollection.deleteMany({});
   });
 
-  const testProduct_1 = await productCollection.insertOne({
-    title: "test1",
-    price: new Long(20000),
-    category: "test category",
-    stock: 5,
-    description: "a test doc",
+  afterAll(async () => {
+    await orderCollection.deleteMany({});
+    await productCollection.deleteMany({});
   });
 
   it("should create new order and decrease product stock", async () => {
+    const prod1 = await createTestProduct({ title: "testss0", price: 20000, stock: 5 });
+    const prod2 = await createTestProduct({ title: "test1", price: 20000, stock: 5 });
+
     const order = await OrderService.create({
       shipping_address: {
         street: "street 1001",
         city: "karaj",
         province: "alborz",
-        postCode: BigInt(2000000000),
+        postCode: 2000000000,
       },
       products: [
-        {
-          product_id: testProduct_0.insertedId,
-          count: 3,
-        },
-        {
-          product_id: testProduct_1.insertedId,
-          count: 3,
-        },
+        { product_id: prod1._id, count: 3 },
+        { product_id: prod2._id, count: 3 },
       ],
-      user_id: testID,
+      user_id: "507f1f77bcf86cd799439013",
     });
+
     const findOrder = await orderCollection.findOne({
       _id: new ObjectId(order._id),
     });
     const findProduct = await productCollection.findOne({
-      _id: testProduct_0.insertedId,
+      _id: prod1._id,
     });
-    expect(findOrder?._id).toBeDefined();
-    expect(findProduct?.stock).toEqual(2);
+
+    expect(findOrder).toBeDefined();
+    expect(findProduct?.stock).toEqual(2); // 5 - 3 = 2
   });
 
   it("should not add product when out of stock", async () => {
+    const prod = await createTestProduct({ stock: 5 });
+
     try {
       await OrderService.create({
         shipping_address: {
           street: "street 1001",
           city: "karaj",
           province: "alborz",
-          postCode: BigInt(2000000000),
+          postCode: 2000000000,
         },
         products: [
-          {
-            product_id: testProduct_0.insertedId.toString(),
-            count: 10,
-          },
+          { product_id: prod._id, count: 10 },
         ],
-        user_id: testID,
+        user_id: "507f1f77bcf86cd799439013",
       });
     } catch (e: any) {
       expect(e.message).toContain("out of stock");
@@ -109,7 +115,7 @@ describe("OrderService - integrationTest", async () => {
           street: "street 1001",
           city: "karaj",
           province: "alborz",
-          postCode: BigInt(2000000000),
+          postCode: 2000000000,
         },
         products: [
           {
@@ -117,7 +123,7 @@ describe("OrderService - integrationTest", async () => {
             count: 10,
           },
         ],
-        user_id: testID,
+        user_id: "507f1f77bcf86cd799439013",
       });
     } catch (e: any) {
       expect(e.message).toContain("product id not exist");
@@ -125,27 +131,33 @@ describe("OrderService - integrationTest", async () => {
   });
 
   it("should assign `cancel` to status", async () => {
-    await OrderService.cancel(testID);
+    const orderId = await createTestOrder();
+    await OrderService.cancel(orderId);
+
     const modifiedOrder = await orderCollection.findOne({
-      _id: new ObjectId(testID),
+      _id: new ObjectId(orderId),
     });
     expect(modifiedOrder!.status).toEqual("canceled");
     expect(modifiedOrder!.canceled_at).toBeDefined();
   });
 
   it("should assign `completed` to status", async () => {
-    await OrderService.complete(testID);
+    const orderId = await createTestOrder();
+    await OrderService.complete(orderId);
+
     const modifiedOrder = await orderCollection.findOne({
-      _id: new ObjectId(testID),
+      _id: new ObjectId(orderId),
     });
     expect(modifiedOrder!.status).toEqual("completed");
     expect(modifiedOrder!.completed_at).toBeDefined();
   });
 
   it("should assign `confirmed` to status", async () => {
-    await OrderService.confirm(testID);
+    const orderId = await createTestOrder();
+    await OrderService.confirm(orderId);
+
     const modifiedOrder = await orderCollection.findOne({
-      _id: new ObjectId(testID),
+      _id: new ObjectId(orderId),
     });
     expect(modifiedOrder!.status).toEqual("confirmed");
     expect(modifiedOrder!.confirmed_at).toBeDefined();
@@ -158,17 +170,18 @@ describe("OrderService - integrationTest", async () => {
   });
 
   it("should throw when updating non-existing order", async () => {
-    // compelete order
+    const fakeId = "507f1f77bcf86cd799439011";
+    // complete order
     await expect(
-      OrderService.complete("507f1f77bcf86cd799439011"),
+      OrderService.complete(fakeId),
     ).rejects.toThrow("no order found to complete");
     // confirm order
     await expect(
-      OrderService.confirm("507f1f77bcf86cd799439011"),
+      OrderService.confirm(fakeId),
     ).rejects.toThrow("no order found to confirm");
     // cancel order
     await expect(
-      OrderService.cancel("507f1f77bcf86cd799439011"),
+      OrderService.cancel(fakeId),
     ).rejects.toThrow("no order found to cancel");
   });
 });

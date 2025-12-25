@@ -1,86 +1,118 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { reviewCollection } from "@db/schemas/review.schema.ts";
 import { ReviewService } from "@features/reviews/review.service.ts";
-import { Long, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
+import { v4 as uuidv4 } from "uuid";
 
-let test_reviewID: ObjectId | undefined;
-let test_productID: string;
-let test_userID1 = "64bfa4d2e3c2a1f8b4d6c9e2";
-let test_userID2 = "507f1f77bcf86cd799439013";
-let test_nonExistProdID = "507f1f77bcf86cd799439015";
-let test_noStockProdID: string;
-const [newReview1, newReview2] = [
-  {
-    rate: 2 as 2,
-    comment: "test text",
-  },
-  {
-    rate: 4 as 4,
-    comment: "test second text",
-  },
-];
-
-beforeAll(async () => {
-  await reviewCollection.deleteMany({});
-  const prodForTest = await productCollection.insertOne({
-    title: "Test",
-    price: new Long(100),
+// Helpers
+async function createTestProduct(overrides: { stock?: number } = {}) {
+  const result = await productCollection.insertOne({
+    title: `Test Product ${uuidv4()}`,
+    price: 100,
     category: "test",
-    stock: 10,
+    stock: overrides.stock ?? 10,
   });
-  test_productID = prodForTest.insertedId.toString();
-  const testReview = await reviewCollection.insertOne({
-    product_id: new ObjectId(test_productID),
-    user_id: new ObjectId("507f1f77bcf86cd799439011"),
-    rate: 4,
-    comment: "test comment",
-  });
-  const soldOutProd = await productCollection.insertOne({
-    title: "tst",
-    price: new Long(300),
-    category: "tst",
-    stock: 0,
-  });
-  test_noStockProdID = soldOutProd.insertedId.toString();
-});
+  return result.insertedId.toString();
+}
 
-afterAll(async () => {
-  await reviewCollection.deleteMany({});
-});
+async function createTestReview(productId: string, userId: string) {
+  await ReviewService.add({
+    product_id: productId,
+    user_id: userId,
+    rate: 5,
+    comment: "Great product!",
+  });
+}
 
-describe("ReviewService - integratoinTest", () => {
+const testUser1 = "64bfa4d2e3c2a1f8b4d6c9e2";
+
+const newReview1 = {
+  rate: 2 as 2,
+  comment: "test text",
+};
+
+const newReview2 = {
+  rate: 4 as 4,
+  comment: "test second text",
+};
+
+describe("ReviewService - integrationTest", () => {
+  beforeEach(async () => {
+    await reviewCollection.deleteMany({});
+    await productCollection.deleteMany({});
+  });
+
+  afterAll(async () => {
+    await reviewCollection.deleteMany({});
+    await productCollection.deleteMany({});
+  });
+
   it("should add reviews", async () => {
-    const instertedReview = await ReviewService.add(
-      test_productID,
-      test_userID1,
-      newReview1,
-    );
+    const productId = await createTestProduct();
+    const instertedReview = await ReviewService.add({
+      product_id: productId,
+      user_id: testUser1,
+      rate: newReview1.rate,
+      comment: newReview1.comment,
+    });
+
     const addedReview = await reviewCollection.findOne({
-      product_id: new ObjectId(test_productID),
-      user_id: new ObjectId(test_userID1),
+      product_id: new ObjectId(productId),
+      user_id: new ObjectId(testUser1),
     });
     expect(addedReview?._id.toString()).toEqual(instertedReview._id);
   });
+
   it("should throw when one user adds multiple reviews", async () => {
-    await reviewCollection.deleteMany({});
-    await ReviewService.add(test_productID, test_userID1, newReview1);
+    const productId = await createTestProduct();
+
+    // Add first review
+    await ReviewService.add({
+      product_id: productId,
+      user_id: testUser1,
+      rate: newReview1.rate,
+      comment: newReview1.comment,
+    });
+
+    // Try adding second review
     await expect(
-      ReviewService.add(test_productID.toString(), test_userID1, newReview2),
+      ReviewService.add({
+        product_id: productId,
+        user_id: testUser1,
+        rate: newReview2.rate,
+        comment: newReview2.comment,
+      }),
     ).rejects.toThrow("one user can't add multiple reviews for one product");
   });
+
   it("should throw when review adding for non-existent product", async () => {
+    const nonExistProdID = new ObjectId().toString();
     await expect(
-      ReviewService.add(test_nonExistProdID, test_userID1, newReview1),
+      ReviewService.add({
+        product_id: nonExistProdID,
+        user_id: testUser1,
+        rate: newReview1.rate,
+        comment: newReview1.comment,
+      }),
     ).rejects.toThrow("product no longer exist");
   });
+
   it("should throw adding review for sold out product", async () => {
+    const noStockProdID = await createTestProduct({ stock: 0 });
     await expect(
-      ReviewService.add(test_noStockProdID, test_userID1, newReview1),
+      ReviewService.add({
+        product_id: noStockProdID,
+        user_id: testUser1,
+        rate: newReview1.rate,
+        comment: newReview1.comment,
+      }),
     ).rejects.toThrow("product is sold out");
   });
+
   it("should throw when delete non-existing review", async () => {
+    const randomReviewId = new ObjectId().toString();
     await expect(
-      ReviewService.delete("507f1f77bcf86cd799439011"),
+      ReviewService.delete(randomReviewId, testUser1),
     ).rejects.toThrow("review no longer exist");
   });
 });
