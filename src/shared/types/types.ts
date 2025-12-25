@@ -8,7 +8,7 @@ export interface Payment {
   user_id: string;
   order_id: string;
   status: "success" | "fail" | "pending";
-  amount: bigint;
+  amount: number;
   authority: string | null;
   created_at?: Date;
   canceled_at?: Date;
@@ -17,7 +17,7 @@ export interface Payment {
 export interface Product {
   _id?: string;
   title: string;
-  price: bigint;
+  price: number;
   category: string;
   stock: number;
   description: string | null;
@@ -39,9 +39,9 @@ export interface Order {
     street: string;
     city: string;
     province: string;
-    postCode: bigint;
+    postCode: number;
   };
-  totalPrice: bigint;
+  totalPrice: number;
   products: {
     product_id: string;
     count: number;
@@ -115,9 +115,9 @@ export const OrderSchema = z.object({
     postCode: z
       .string()
       .regex(/^\d{10}$/, "Post code must be exactly 10 digits")
-      .transform((val) => BigInt(val)),
+      .transform((val) => Number(val)),
   }),
-  amount: z.coerce.bigint().positive(),
+  amount: z.coerce.number().positive(),
   products: z.array(
     z.object({
       product_id: z.string().min(1),
@@ -134,5 +134,5 @@ export const orderItemsScehema = z.array(
 
 export const PaymentSchema = z.object({
   order_id: z.string(),
-  amount: z.coerce.bigint(),
+  amount: z.coerce.number(),
 });

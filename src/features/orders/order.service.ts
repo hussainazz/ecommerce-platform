@@ -3,7 +3,6 @@ import { orderCollection } from "@db/schemas/order.schema.ts";
 import * as Types from "@shared/types/types.ts";
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { ProductService } from "@features/products/product.service.ts";
-import { Long } from "mongodb";
 
 export class OrderService {
   static async create(
@@ -24,7 +23,7 @@ export class OrderService {
       throw new Error("at least one product id not exist");
     }
 
-    let totalPrice = BigInt(0);
+    let totalPrice = 0;
     const foundProductsMap = new Map(
       foundProducts.map((prod) => [prod._id.toString(), prod]),
     );
@@ -32,7 +31,7 @@ export class OrderService {
       const prodPrice = foundProductsMap.get(
         ordProd.product_id.toString(),
       ).price;
-      totalPrice += BigInt(prodPrice.toString()) * BigInt(ordProd.count);
+      totalPrice += Number(prodPrice) * ordProd.count;
       await ProductService.decreaseStock(ordProd.product_id, ordProd.count);
     }
 
@@ -43,7 +42,7 @@ export class OrderService {
       user_id: new ObjectId(data.user_id),
       status: "pending",
       created_at,
-      totalPrice: Long.fromBigInt(totalPrice),
+      totalPrice,
     });
     return {
       _id: result.insertedId.toString(),

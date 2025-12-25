@@ -20,7 +20,7 @@ if (collections.length === 1) {
             description: "Product title must be a string and is required",
           },
           price: {
-            bsonType: "long",
+            bsonType: "number",
             minimum: 0,
             description: "Price must be a positive number and is required",
           },

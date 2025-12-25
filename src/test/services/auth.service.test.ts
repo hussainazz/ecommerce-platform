@@ -4,129 +4,140 @@ import { ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
 import { tokenCollection } from "@db/schemas/token.schema.ts";
 import { v4 as uuidv4 } from "uuid";
-import { uuid } from "zod/mini";
 
-let testID: string | ObjectId;
-let testID1: ObjectId;
-let refreshTokenRaw = "asldhgklha2350802lsd";
-let refTokenMaxAge = 30 * 24 * 60 * 60 * 1000;
-
-beforeAll(async () => {
-  await userCollection.deleteMany({});
-
-  try {
-    const hashedPassword = await bcrypt.hash("123456789", 12);
-    const testUser = await userCollection.insertOne({
-      username: "testusername",
-      password: hashedPassword,
-      email: "test@test.com",
-      created_at: new Date(),
-      role: "user",
-    });
-    testID = testUser.insertedId;
-  } catch (error: any) {
-    if (error.errInfo) {
-      console.error(
-        "Validation Error Details:",
-        JSON.stringify(error.errInfo.details),
-      );
-    }
-    throw error;
-  }
-});
-
-afterAll(async () => {
-  await userCollection.deleteMany({});
-});
+// Helper function to create a test user
+async function createTestUser(
+  overrides: { username?: string; email?: string; password?: string } = {}
+) {
+  const password = overrides.password || "123456789";
+  const hashedPassword = await bcrypt.hash(password, 12);
+  const result = await userCollection.insertOne({
+    username: overrides.username || `user_${uuidv4()}`,
+    email: overrides.email || `test_${uuidv4()}@test.com`,
+    password: hashedPassword,
+    created_at: new Date(),
+    role: "user",
+  });
+  return result.insertedId.toString();
+}
 
 describe("UserService - integrationTest", () => {
+  // Clean up before running tests
+  beforeEach(async () => {
+    await userCollection.deleteMany({});
+    await tokenCollection.deleteMany({});
+  });
+
+  afterAll(async () => {
+    await userCollection.deleteMany({});
+    await tokenCollection.deleteMany({});
+  });
+
   it("should create a user", async () => {
-    const user = await UserService.register({
+    const userData = {
       username: "johnUsername",
       password: "johny123456",
       email: "john@johny.com",
-    });
+    };
+    const user = await UserService.register(userData);
+
     const findUser = await userCollection.findOne({
-      username: user.username,
+      username: userData.username,
     });
-    expect(findUser?._id).toBeDefined();
-    testID1 = findUser?._id!;
+    expect(findUser).toBeDefined();
+    expect(findUser?._id.toString()).toBe(user._id);
   });
 
   it("should find user by id", async () => {
-    const user = await UserService.findById(testID.toString());
-    expect(user._id).toBeDefined;
+    const userId = await createTestUser();
+    const user = await UserService.findById(userId);
+    expect(user._id).toBeDefined();
+    expect(user._id).toBe(userId);
   });
 
   it("should find userId by email", async () => {
-    const userId = await UserService.findByEmail("test@test.com");
-    expect(userId).toBeDefined();
-  });
-
-  it("should update password", async () => {
-    const updateResult = await UserService.updatePassword(
-      testID.toString(),
-      "98765432",
-    );
-    expect(updateResult.modifiedCount).toEqual(1);
+    const email = "unique@test.com";
+    const userId = await createTestUser({ email });
+    const foundUserId = await UserService.findByEmail(email);
+    expect(foundUserId).toBeDefined();
+    expect(foundUserId).toBe(userId);
   });
 
   it("should be truthy when password matches", async () => {
-    const result = await UserService.findByPassword(
-      testID.toString(),
-      "123456789",
-    );
-    expect(result).toBeTruthy;
+    const password = "mySecretPassword";
+    const userId = await createTestUser({ password });
+
+    const result = await UserService.findByPassword(userId, password);
+    expect(result).toBeTruthy();
+  });
+
+  it("should update password", async () => {
+    const userId = await createTestUser();
+    const newPassword = "newPassword123";
+
+    const updateResult = await UserService.updatePassword(userId, newPassword);
+    expect(updateResult.modifiedCount).toEqual(1);
+
+    // Verify the password was actually changed
+    const updatedUser = await userCollection.findOne({ _id: new ObjectId(userId) });
+    const isMatch = await bcrypt.compare(newPassword, updatedUser?.password || "");
+    expect(isMatch).toBe(true);
   });
 
   it("should be falsy when password not matches", async () => {
-    const result = await UserService.findByPassword(
-      testID.toString(),
-      "987654321",
-    );
-    expect(result).toBeFalsy;
+    const userId = await createTestUser({ password: "correctPassword" });
+    const result = await UserService.findByPassword(userId, "wrongPassword");
+    expect(result).toBeFalsy();
   });
 
   it("should throw when updating password non-existent user", async () => {
+    const nonExistentId = new ObjectId().toString();
     await expect(
-      UserService.updatePassword("507f1f77bcf86cd799439011", "98765432"),
+      UserService.updatePassword(nonExistentId, "anyPassword")
     ).rejects.toThrow("user no longer exists");
   });
 
   it("should throw when finding non-exsiting user with email", async () => {
-    await expect(UserService.findByEmail("invalid@email.com")).rejects.toThrow(
-      "no user found with this email",
+    await expect(UserService.findByEmail("nonexistent@email.com")).rejects.toThrow(
+      "no user found with this email"
     );
   });
 
   it("should throw when finding non-existent user", async () => {
+    const nonExistentId = new ObjectId().toString();
     await expect(
-      UserService.findById("507f1f77bcf86cd799439011"),
+      UserService.findById(nonExistentId)
     ).rejects.toThrow("no user found");
   });
 
   it("should create ref token", async () => {
+    const userId = await createTestUser();
     const jti = uuidv4();
-    await UserService.storeToken(
-      jti,
-      testID.toString(),
-      refreshTokenRaw,
-      refTokenMaxAge,
-    );
-    const token = await tokenCollection.findOne({
-      userId: testID.toString(),
-    });
+    const refreshTokenRaw = "someRefTokenString";
+    const refTokenMaxAge = 3600 * 1000;
+
+    await UserService.storeToken(jti, userId, refreshTokenRaw, refTokenMaxAge);
+
+    const token = await tokenCollection.findOne({ userId });
+    expect(token).toBeDefined();
     expect(token?.tokenHash).toBeDefined();
+    expect(token?.jti).toBe(jti);
   });
 
   it("should throw when deleting non-existent user", async () => {
+    const nonExistentId = new ObjectId().toString();
     await expect(
-      UserService.deleteUser("507f1f77bcf86cd799439011"),
+      UserService.deleteUser(nonExistentId)
     ).rejects.toThrow("no user found to delete");
   });
 
   it("should delete user", async () => {
-    const deletedUser = await UserService.deleteUser(testID.toString());
+    const userId = await createTestUser();
+    const deletedUser = await UserService.deleteUser(userId);
     expect(deletedUser.deletedCount).toEqual(1);
+
+    // Verify user is gone
+    const foundUser = await userCollection.findOne({ _id: new ObjectId(userId) });
+    expect(foundUser).toBeNull();
   });
 });

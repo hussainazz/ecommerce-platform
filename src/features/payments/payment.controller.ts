@@ -15,6 +15,7 @@ const addPayment = async (req: Request, res: Response, next: NextFunction) => {
       error: z.prettifyError(reqBody.error),
     });
   }
+  console.log({ reqBody })
   try {
     const addedPayment = await PaymentService.create({
       ...reqBody.data,
