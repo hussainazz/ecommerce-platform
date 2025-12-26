@@ -8,6 +8,12 @@ export class UserService {
   static async register(
     data: Omit<Types.User, "_id" | "role" | "created_at">,
   ): Promise<Types.User> {
+    const user = await userCollection.findOne({ username: data.username });
+    if (user) throw new Error("duplicate username");
+
+    const userByEmail = await userCollection.findOne({ email: data.email });
+    if (userByEmail) throw new Error("duplicate email");
+
     const passwordHash = await bcrypt.hash(data.password, 12);
     const result = await userCollection.insertOne({ ...data, role: "user" });
     return {
@@ -22,17 +28,23 @@ export class UserService {
 
   static async storeToken(
     jti: string,
-    userId: string,
+    userId: string | ObjectId,
     tokenRaw: string,
     maxAge: number,
   ) {
-    // should create validation everywhere that we used Data.now()
-    if (!jti || !tokenRaw || !userId || !maxAge)
+    // Ensure userId is a valid ObjectId for schema validation
+    if (typeof userId === "string") {
+      if (!ObjectId.isValid(userId)) throw new Error("Invalid user id");
+      // Convert string to ObjectId instance
+      userId = new ObjectId(userId);
+    }
+    if (!jti || !tokenRaw || !maxAge) {
       throw new Error("user id, token or exp date is missing");
+    }
     const tokenHash = await bcrypt.hash(tokenRaw, 12);
     const created_at = new Date();
     const expires_at = new Date(maxAge + Date.now());
-    await tokenCollection.insertOne({
+    const result = await tokenCollection.insertOne({
       jti,
       userId,
       tokenHash,
@@ -44,13 +56,15 @@ export class UserService {
 
   static async findToken(jti: string) {
     const token = await tokenCollection.findOne({ jti });
-    const userExist = await this.findById(token?.userId);
-    if (!token || token.expiresAt < Date.now() || !userExist) {
-      if (token?.expiresAt < Date.now()) {
+    const tokenExpiresDate = Number(token?.expires_at);
+    if (!token || tokenExpiresDate < Date.now()) {
+      if (tokenExpiresDate < Date.now()) {
         this.deleteToken(token?.jti);
       }
       return null;
     }
+    // will throw if user not found
+    await this.findById(token?.userId);
     return {
       tokenHash: token.tokenHash,
       userId: token.userId,
@@ -59,8 +73,7 @@ export class UserService {
 
   static async deleteToken(jti: string) {
     const result = await tokenCollection.deleteOne({ jti });
-    if (result.deletedCount === 1) return true;
-    return false;
+    return result;
   }
 
   static async findById(_id: string): Promise<Types.User> {
@@ -79,11 +92,13 @@ export class UserService {
 
   static async findIdByUsername(username: string) {
     const user = await userCollection.findOne({ username });
-    if (!user) return false;
+    if (!user) {
+      throw new Error("no user found with this username");
+    };
     return user._id.toString();
   }
 
-  static async findByEmail(email: string) {
+  static async findIdByEmail(email: string) {
     const result = await userCollection.findOne({ email });
     if (!result) throw new Error("no user found with this email");
     return result._id.toString();

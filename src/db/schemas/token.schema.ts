@@ -17,7 +17,7 @@ if (collections.length === 1) {
             bsonType: "string",
           },
           userId: {
-            bsonType: "string",
+            bsonType: "objectId",
           },
           tokenHash: {
             bsonType: "string",
