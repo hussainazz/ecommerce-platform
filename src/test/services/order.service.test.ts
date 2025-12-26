@@ -89,45 +89,36 @@ describe("OrderService - integrationTest", () => {
 
   it("should not add product when out of stock", async () => {
     const prod = await createTestProduct({ stock: 5 });
-
-    try {
-      await OrderService.create({
-        shipping_address: {
-          street: "street 1001",
-          city: "karaj",
-          province: "alborz",
-          postCode: 2000000000,
-        },
-        products: [
-          { product_id: prod._id, count: 10 },
-        ],
-        user_id: "507f1f77bcf86cd799439013",
-      });
-    } catch (e: any) {
-      expect(e.message).toContain("out of stock");
-    }
+    await expect(OrderService.create({
+      shipping_address: {
+        street: "street 1001",
+        city: "karaj",
+        province: "alborz",
+        postCode: 2000000000,
+      },
+      products: [
+        { product_id: prod._id, count: 10 },
+      ],
+      user_id: "507f1f77bcf86cd799439013",
+    })).rejects.toThrow("out of stock");
   });
 
   it("should not add order containing non-existent product id", async () => {
-    try {
-      await OrderService.create({
-        shipping_address: {
-          street: "street 1001",
-          city: "karaj",
-          province: "alborz",
-          postCode: 2000000000,
+    await expect(OrderService.create({
+      shipping_address: {
+        street: "street 1001",
+        city: "karaj",
+        province: "alborz",
+        postCode: 2000000000,
+      },
+      products: [
+        {
+          product_id: "507f1f77bcf86cd799439013",
+          count: 10,
         },
-        products: [
-          {
-            product_id: "507f1f77bcf86cd799439013",
-            count: 10,
-          },
-        ],
-        user_id: "507f1f77bcf86cd799439013",
-      });
-    } catch (e: any) {
-      expect(e.message).toContain("product id not exist");
-    }
+      ],
+      user_id: "507f1f77bcf86cd799439013",
+    })).rejects.toThrow("product id not exist");
   });
 
   it("should assign `cancel` to status", async () => {

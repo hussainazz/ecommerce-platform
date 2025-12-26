@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 // Helper function to create a test user
 async function createTestUser(
   overrides: { username?: string; email?: string; password?: string } = {}
-) {
+): Promise<string> {
   const password = overrides.password || "123456789";
   const hashedPassword = await bcrypt.hash(password, 12);
   const result = await userCollection.insertOne({
@@ -19,6 +19,13 @@ async function createTestUser(
     role: "user",
   });
   return result.insertedId.toString();
+}
+
+function createTestToken() {
+  const jti = uuidv4();
+  const refreshTokenRaw = "someRefTokenString";
+  const refTokenMaxAge = 3600 * 1000;
+  return { jti, refreshTokenRaw, refTokenMaxAge };
 }
 
 describe("UserService - integrationTest", () => {
@@ -58,7 +65,7 @@ describe("UserService - integrationTest", () => {
   it("should find userId by email", async () => {
     const email = "unique@test.com";
     const userId = await createTestUser({ email });
-    const foundUserId = await UserService.findByEmail(email);
+    const foundUserId = await UserService.findIdByEmail(email);
     expect(foundUserId).toBeDefined();
     expect(foundUserId).toBe(userId);
   });
@@ -98,7 +105,7 @@ describe("UserService - integrationTest", () => {
   });
 
   it("should throw when finding non-exsiting user with email", async () => {
-    await expect(UserService.findByEmail("nonexistent@email.com")).rejects.toThrow(
+    await expect(UserService.findIdByEmail("nonexistent@email.com")).rejects.toThrow(
       "no user found with this email"
     );
   });
@@ -112,17 +119,125 @@ describe("UserService - integrationTest", () => {
 
   it("should create ref token", async () => {
     const userId = await createTestUser();
-    const jti = uuidv4();
-    const refreshTokenRaw = "someRefTokenString";
-    const refTokenMaxAge = 3600 * 1000;
+    const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
 
     await UserService.storeToken(jti, userId, refreshTokenRaw, refTokenMaxAge);
-
-    const token = await tokenCollection.findOne({ userId });
+    const token = await tokenCollection.findOne({ userId: new ObjectId(userId) });
     expect(token).toBeDefined();
     expect(token?.tokenHash).toBeDefined();
     expect(token?.jti).toBe(jti);
+  })
+
+  it("should find ref token", async () => {
+    const userId = await createTestUser();
+    const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
+
+    await UserService.storeToken(jti, userId, refreshTokenRaw, refTokenMaxAge);
+
+    const token = await UserService.findToken(jti);
+    expect(token?.tokenHash).toBeDefined();
+  })
+
+  it("should return null when token not found", async () => {
+    const token = await UserService.findToken("nonExistentJti");
+    expect(token).toBeNull();
+  })
+
+  it("should return null when token expired", async () => {
+    const userId = await createTestUser();
+    const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
+
+    const tokenHash = await bcrypt.hash(refreshTokenRaw, 12);
+
+    const expires_at = new Date(Date.now() - 1000);
+    const created_at = new Date(Date.now() - 1000 - refTokenMaxAge);
+
+    console.log("test: ", expires_at)
+    await tokenCollection.insertOne({
+      jti,
+      userId: new ObjectId(userId),
+      tokenHash,
+      expires_at,
+      created_at
+    });
+
+    const token = await UserService.findToken(jti);
+    expect(token).toBeNull();
+  })
+
+  it("should return null when token's user no longer exist", async () => {
+    const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
+    await tokenCollection.insertOne({
+      jti,
+      userId: new ObjectId(),
+      tokenHash: await bcrypt.hash(refreshTokenRaw, 12),
+      expires_at: new Date(Date.now() + refTokenMaxAge),
+      created_at: new Date(Date.now())
+    });
+    await expect(UserService.findToken(jti)).rejects.toThrow("no user found");
+  })
+
+  it("should delete token", async () => {
+    const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
+    await tokenCollection.insertOne({
+      jti,
+      userId: new ObjectId(),
+      tokenHash: await bcrypt.hash(refreshTokenRaw, 12),
+      expires_at: new Date(Date.now() + refTokenMaxAge),
+      created_at: new Date(Date.now())
+    });
+
+    const result = await UserService.deleteToken(jti);
+    expect(result.deletedCount).toBe(1);
+    const token = await tokenCollection.findOne({ jti });
+    expect(token).toBeNull();
   });
+
+  it("should return zero deletedCount when deleting non-existent token", async () => {
+    const result = await UserService.deleteToken("non-existent-jti");
+    expect(result.deletedCount).toBe(0);
+  });
+
+  it("should find userId by username", async () => {
+    const username = "testuser123";
+    const userId = await createTestUser({ username });
+    const foundUserId = await UserService.findIdByUsername(username);
+    expect(foundUserId).toBe(userId);
+  });
+
+  it("should throw when finding non-existent user by username", async () => {
+    await expect(UserService.findIdByUsername("ghostUser")).rejects.toThrow(
+      "no user found with this username"
+    );
+  });
+
+  it("should throw on duplicate username", async () => {
+    await userCollection.insertOne({
+      username: "uniqueUsername",
+      password: "uniquePassword",
+      email: "test@Email.com",
+      role: "user"
+    })
+    await expect(UserService.register({
+      username: "uniqueUsername",
+      password: "uniquePassword",
+      email: "ts@Email.com",
+    })).rejects.toThrow("duplicate username");
+  })
+
+  it("should throw on duplicate email", async () => {
+    await userCollection.insertOne({
+      username: "uniqueUsername",
+      password: "uniquePassword",
+      email: "unique@Email.com",
+      role: "user"
+    })
+    await expect(UserService.register({
+      username: "uniqueUsername2",
+      password: "uniquePassword",
+      email: "unique@Email.com",
+    })).rejects.toThrow("duplicate email");
+  })
 
   it("should throw when deleting non-existent user", async () => {
     const nonExistentId = new ObjectId().toString();
