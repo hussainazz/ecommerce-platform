@@ -67,7 +67,7 @@ export class ReviewService {
 
   static async delete(_id: string, user_id: string) {
     if (!ObjectId.isValid(_id)) throw new Error(`review id is invalid`);
-    if (!ObjectId.isValid(_id)) throw new Error(`user id is invalid`);
+    if (!ObjectId.isValid(user_id)) throw new Error(`user id is invalid`);
     const result = await reviewCollection.deleteOne({
       _id: new ObjectId(_id),
       user_id: new ObjectId(user_id),

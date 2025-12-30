@@ -38,7 +38,7 @@ export class OrderService {
     const created_at = new Date();
     const result = await orderCollection.insertOne({
       ...data,
-      product: orderProducts,
+      products: orderProducts,
       user_id: new ObjectId(data.user_id),
       status: "pending",
       created_at,
@@ -68,12 +68,12 @@ export class OrderService {
     const result = await orderCollection.findOne({ _id: new ObjectId(_id) });
     if (!result) throw new Error("no order found");
     return {
-      _id: result.insertedId.toString(),
+      _id: result._id.toString(),
       status: result.status,
       shipping_address: result.shipping_address,
       totalPrice: result.totalPrice,
       products: result.products,
-      user_id: result.user_id,
+      user_id: result.user_id.toString(),
       created_at: result.created_at,
       canceled_at: result.canceled_at,
       completed_at: result.completed_at,
@@ -126,11 +126,16 @@ export class OrderService {
     for (const [removedItem_id, removedItem_count] of prevItemsMap) {
       ops.push(ProductService.increaseStock(removedItem_id, removedItem_count));
     }
+    // Convert string product_ids to ObjectIds for database update
+    const newItemsWithObjectIds = newItems.map((item) => ({
+      product_id: new ObjectId(item.product_id),
+      count: item.count,
+    }));
     await Promise.all([
       ...ops,
       orderCollection.updateOne(
         { _id: new ObjectId(_id) },
-        { $set: { proudcts: newItems, updated_at: new Date() } },
+        { $set: { products: newItemsWithObjectIds, updated_at: new Date() } },
       ),
     ]);
   }
