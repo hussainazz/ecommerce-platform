@@ -24,6 +24,10 @@ async function createTestReview(productId: string, userId: string) {
   });
 }
 
+// Hardcoded user IDs are acceptable here because:
+// - ReviewService only validates ObjectId format, not user existence in DB
+// - These are valid ObjectId strings that pass validation
+// - No foreign key constraint checks against userCollection
 const testUser1 = "64bfa4d2e3c2a1f8b4d6c9e2";
 
 const newReview1 = {
@@ -109,10 +113,24 @@ describe("ReviewService - integrationTest", () => {
     ).rejects.toThrow("product is sold out");
   });
 
-  it("should throw when delete non-existing review", async () => {
-    const randomReviewId = new ObjectId().toString();
+  it("should throw when a user tries to delete another user's review", async () => {
+    const productId = await createTestProduct();
+    const user1Id = new ObjectId().toString();
+    const user2Id = new ObjectId().toString();
+
+    await ReviewService.add({
+      product_id: productId,
+      user_id: user1Id,
+      rate: 3,
+      comment: "Review by user 1",
+    });
+
+    const user1Review = await reviewCollection.findOne({
+      user_id: new ObjectId(user1Id),
+    });
+
     await expect(
-      ReviewService.delete(randomReviewId, testUser1),
+      ReviewService.delete(user1Review._id.toString(), user2Id),
     ).rejects.toThrow("review no longer exist");
   });
 });

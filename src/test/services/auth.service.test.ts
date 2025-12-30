@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 
 // Helper function to create a test user
 async function createTestUser(
-  overrides: { username?: string; email?: string; password?: string } = {}
+  overrides: { username?: string; email?: string; password?: string } = {},
 ): Promise<string> {
   const password = overrides.password || "123456789";
   const hashedPassword = await bcrypt.hash(password, 12);
@@ -86,8 +86,13 @@ describe("UserService - integrationTest", () => {
     expect(updateResult.modifiedCount).toEqual(1);
 
     // Verify the password was actually changed
-    const updatedUser = await userCollection.findOne({ _id: new ObjectId(userId) });
-    const isMatch = await bcrypt.compare(newPassword, updatedUser?.password || "");
+    const updatedUser = await userCollection.findOne({
+      _id: new ObjectId(userId),
+    });
+    const isMatch = await bcrypt.compare(
+      newPassword,
+      updatedUser?.password || "",
+    );
     expect(isMatch).toBe(true);
   });
 
@@ -100,21 +105,21 @@ describe("UserService - integrationTest", () => {
   it("should throw when updating password non-existent user", async () => {
     const nonExistentId = new ObjectId().toString();
     await expect(
-      UserService.updatePassword(nonExistentId, "anyPassword")
+      UserService.updatePassword(nonExistentId, "anyPassword"),
     ).rejects.toThrow("user no longer exists");
   });
 
   it("should throw when finding non-exsiting user with email", async () => {
-    await expect(UserService.findIdByEmail("nonexistent@email.com")).rejects.toThrow(
-      "no user found with this email"
-    );
+    await expect(
+      UserService.findIdByEmail("nonexistent@email.com"),
+    ).rejects.toThrow("no user found with this email");
   });
 
   it("should throw when finding non-existent user", async () => {
     const nonExistentId = new ObjectId().toString();
-    await expect(
-      UserService.findById(nonExistentId)
-    ).rejects.toThrow("no user found");
+    await expect(UserService.findById(nonExistentId)).rejects.toThrow(
+      "no user found",
+    );
   });
 
   it("should create ref token", async () => {
@@ -122,11 +127,13 @@ describe("UserService - integrationTest", () => {
     const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
 
     await UserService.storeToken(jti, userId, refreshTokenRaw, refTokenMaxAge);
-    const token = await tokenCollection.findOne({ userId: new ObjectId(userId) });
+    const token = await tokenCollection.findOne({
+      userId: new ObjectId(userId),
+    });
     expect(token).toBeDefined();
     expect(token?.tokenHash).toBeDefined();
     expect(token?.jti).toBe(jti);
-  })
+  });
 
   it("should find ref token", async () => {
     const userId = await createTestUser();
@@ -136,12 +143,12 @@ describe("UserService - integrationTest", () => {
 
     const token = await UserService.findToken(jti);
     expect(token?.tokenHash).toBeDefined();
-  })
+  });
 
   it("should return null when token not found", async () => {
     const token = await UserService.findToken("nonExistentJti");
     expect(token).toBeNull();
-  })
+  });
 
   it("should return null when token expired", async () => {
     const userId = await createTestUser();
@@ -152,18 +159,18 @@ describe("UserService - integrationTest", () => {
     const expires_at = new Date(Date.now() - 1000);
     const created_at = new Date(Date.now() - 1000 - refTokenMaxAge);
 
-    console.log("test: ", expires_at)
+    console.log("test: ", expires_at);
     await tokenCollection.insertOne({
       jti,
       userId: new ObjectId(userId),
       tokenHash,
       expires_at,
-      created_at
+      created_at,
     });
 
     const token = await UserService.findToken(jti);
     expect(token).toBeNull();
-  })
+  });
 
   it("should return null when token's user no longer exist", async () => {
     const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
@@ -172,10 +179,10 @@ describe("UserService - integrationTest", () => {
       userId: new ObjectId(),
       tokenHash: await bcrypt.hash(refreshTokenRaw, 12),
       expires_at: new Date(Date.now() + refTokenMaxAge),
-      created_at: new Date(Date.now())
+      created_at: new Date(Date.now()),
     });
     await expect(UserService.findToken(jti)).rejects.toThrow("no user found");
-  })
+  });
 
   it("should delete token", async () => {
     const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
@@ -184,7 +191,7 @@ describe("UserService - integrationTest", () => {
       userId: new ObjectId(),
       tokenHash: await bcrypt.hash(refreshTokenRaw, 12),
       expires_at: new Date(Date.now() + refTokenMaxAge),
-      created_at: new Date(Date.now())
+      created_at: new Date(Date.now()),
     });
 
     const result = await UserService.deleteToken(jti);
@@ -207,7 +214,7 @@ describe("UserService - integrationTest", () => {
 
   it("should throw when finding non-existent user by username", async () => {
     await expect(UserService.findIdByUsername("ghostUser")).rejects.toThrow(
-      "no user found with this username"
+      "no user found with this username",
     );
   });
 
@@ -216,34 +223,38 @@ describe("UserService - integrationTest", () => {
       username: "uniqueUsername",
       password: "uniquePassword",
       email: "test@Email.com",
-      role: "user"
-    })
-    await expect(UserService.register({
-      username: "uniqueUsername",
-      password: "uniquePassword",
-      email: "ts@Email.com",
-    })).rejects.toThrow("duplicate username");
-  })
+      role: "user",
+    });
+    await expect(
+      UserService.register({
+        username: "uniqueUsername",
+        password: "uniquePassword",
+        email: "ts@Email.com",
+      }),
+    ).rejects.toThrow("duplicate username");
+  });
 
   it("should throw on duplicate email", async () => {
     await userCollection.insertOne({
       username: "uniqueUsername",
       password: "uniquePassword",
       email: "unique@Email.com",
-      role: "user"
-    })
-    await expect(UserService.register({
-      username: "uniqueUsername2",
-      password: "uniquePassword",
-      email: "unique@Email.com",
-    })).rejects.toThrow("duplicate email");
-  })
+      role: "user",
+    });
+    await expect(
+      UserService.register({
+        username: "uniqueUsername2",
+        password: "uniquePassword",
+        email: "unique@Email.com",
+      }),
+    ).rejects.toThrow("duplicate email");
+  });
 
   it("should throw when deleting non-existent user", async () => {
     const nonExistentId = new ObjectId().toString();
-    await expect(
-      UserService.deleteUser(nonExistentId)
-    ).rejects.toThrow("no user found to delete");
+    await expect(UserService.deleteUser(nonExistentId)).rejects.toThrow(
+      "no user found to delete",
+    );
   });
 
   it("should delete user", async () => {
@@ -252,7 +263,9 @@ describe("UserService - integrationTest", () => {
     expect(deletedUser.deletedCount).toEqual(1);
 
     // Verify user is gone
-    const foundUser = await userCollection.findOne({ _id: new ObjectId(userId) });
+    const foundUser = await userCollection.findOne({
+      _id: new ObjectId(userId),
+    });
     expect(foundUser).toBeNull();
   });
 });
