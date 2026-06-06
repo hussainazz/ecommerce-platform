@@ -1,6 +1,6 @@
 # Ecommerce Monolith Backend
 
-A modern, production-ready e-commerce backend built with Node.js, Express 5, TypeScript, and MongoDB.
+A modern e-commerce backend built with Node.js, Express 5, TypeScript, and MongoDB.
 
 ## 🚀 Features
 
