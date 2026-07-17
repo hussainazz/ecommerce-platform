@@ -29,7 +29,8 @@ async function createTestReview(productId: string, userId: string) {
 // - These are valid ObjectId strings that pass validation
 // - No foreign key constraint checks against userCollection
 const testUser1 = "64bfa4d2e3c2a1f8b4d6c9e2";
-
+const testUser2 = new ObjectId().toString();
+const testUser3 = new ObjectId().toString();
 const newReview1 = {
   rate: 2 as 2,
   comment: "test text",
@@ -38,6 +39,11 @@ const newReview1 = {
 const newReview2 = {
   rate: 4 as 4,
   comment: "test second text",
+};
+
+const newReview3 = {
+  rate: 3 as 3,
+  comment: "test third text",
 };
 
 describe("ReviewService - integrationTest", () => {
@@ -59,7 +65,6 @@ describe("ReviewService - integrationTest", () => {
       rate: newReview1.rate,
       comment: newReview1.comment,
     });
-
     const addedReview = await reviewCollection.findOne({
       product_id: new ObjectId(productId),
       user_id: new ObjectId(testUser1),
@@ -67,6 +72,34 @@ describe("ReviewService - integrationTest", () => {
     expect(addedReview?._id.toString()).toEqual(instertedReview._id);
   });
 
+  it("should find product's reviews", async () => {
+    const productId = await createTestProduct();
+    const insertedReview1 = await ReviewService.add({
+      product_id: productId,
+      user_id: testUser1,
+      rate: newReview1.rate,
+      comment: newReview1.comment,
+    });
+    const insertedReview2 = await ReviewService.add({
+      product_id: productId,
+      user_id: testUser2,
+      rate: newReview2.rate,
+      comment: newReview2.comment,
+    });
+    const insertedReview3 = await ReviewService.add({
+      product_id: productId,
+      user_id: testUser3,
+      rate: newReview3.rate,
+      comment: newReview3.comment,
+    });
+    const foundReviews = await ReviewService.findProductReviews(productId);
+
+    console.log(foundReviews);
+    expect(foundReviews).toBeDefined();
+    expect(Array.isArray(foundReviews)).toBe(true);
+    expect(foundReviews).toHaveLength(3);
+  });
+  ``;
   it("should throw when one user adds multiple reviews", async () => {
     const productId = await createTestProduct();
 

@@ -15,7 +15,11 @@ export class UserService {
     if (userByEmail) throw new Error("duplicate email");
 
     const passwordHash = await bcrypt.hash(data.password, 12);
-    const result = await userCollection.insertOne({ ...data, role: "user" });
+    const result = await userCollection.insertOne({
+      ...data,
+      passwordHash,
+      role: "user",
+    });
     return {
       _id: result.insertedId.toString(),
       username: data.username,
@@ -94,7 +98,7 @@ export class UserService {
     const user = await userCollection.findOne({ username });
     if (!user) {
       throw new Error("no user found with this username");
-    };
+    }
     return user._id.toString();
   }
 

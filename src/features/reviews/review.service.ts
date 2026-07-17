@@ -45,14 +45,15 @@ export class ReviewService {
       created_at,
     };
   }
-
+  // FIX: it only searches for one review.
+  // but should find all reviews for the product.
   static async findProductReviews(
     productId: string,
   ): Promise<Types.Review[] | null> {
     if (!ObjectId.isValid(productId)) throw new Error(`review id is invalid`);
-    const result: Types.Review[] | null = await reviewCollection.find({
-      productId: new ObjectId(productId),
-    });
+    const result = await reviewCollection
+      .find({ product_id: new ObjectId(productId) })
+      .toArray();
     return result;
   }
 

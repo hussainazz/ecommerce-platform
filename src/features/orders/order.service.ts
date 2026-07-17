@@ -58,7 +58,7 @@ export class OrderService {
   static async findUserOrders(userId: string) {
     const result = await orderCollection
       .find({ user_id: userId })
-      .project({ status: 1, totoalPrice: 1 })
+      .project({ status: 1, totalPrice: 1 })
       .toArray();
     return result;
   }
