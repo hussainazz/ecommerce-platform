@@ -1,9 +1,7 @@
 import { productCollection } from "@db/schemas/product.schema.ts";
 import { reviewCollection } from "@db/schemas/review.schema.ts";
 import * as Types from "@shared/types/types.ts";
-import { obj } from "find-config";
 import { ObjectId } from "mongodb";
-import { openAsBlob } from "node:fs";
 
 export class ReviewService {
   static async add(
@@ -35,6 +33,7 @@ export class ReviewService {
       if (err.code === 11000)
         throw new Error("one user can't add multiple reviews for one product");
     }
+    if (!addedReview) throw new Error("failed to add the review");
     if (!addedReview.insertedId) throw new Error("review not inserted");
     return {
       _id: addedReview.insertedId.toString(),
@@ -49,12 +48,19 @@ export class ReviewService {
   // but should find all reviews for the product.
   static async findProductReviews(
     productId: string,
-  ): Promise<Types.Review[] | null> {
+  ): Promise<Types.Review[] | []> {
     if (!ObjectId.isValid(productId)) throw new Error(`review id is invalid`);
     const result = await reviewCollection
       .find({ product_id: new ObjectId(productId) })
       .toArray();
-    return result;
+    return result.map((doc): Types.Review => ({
+      _id: doc._id.toString(),
+      product_id: doc.product_id.toString(),
+      user_id: doc.user_id.toString(),
+      rate: doc.rate,
+      comment: doc.comment,
+      created_at: doc.created_at,
+    }));
   }
 
   static async findById(_id: string) {
