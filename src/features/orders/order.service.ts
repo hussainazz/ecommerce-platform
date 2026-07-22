@@ -25,12 +25,12 @@ export class OrderService {
 
     let totalPrice = 0;
     const foundProductsMap = new Map(
-      foundProducts.map((prod) => [prod._id.toString(), prod]),
+      foundProducts.map((prod) => [prod!._id.toString(), prod]),
     );
     for (const ordProd of orderProducts) {
       const prodPrice = foundProductsMap.get(
         ordProd.product_id.toString(),
-      ).price;
+      )!.price;
       totalPrice += Number(prodPrice) * ordProd.count;
       await ProductService.decreaseStock(ordProd.product_id, ordProd.count);
     }
