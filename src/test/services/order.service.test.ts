@@ -272,7 +272,6 @@ describe("OrderService - integrationTest", () => {
     const prod2 = await createTestProduct({ stock: 10 });
     const prod3 = await createTestProduct({ stock: 5 });
 
-    // Create order using OrderService.create to properly decrease stock
     const order = await OrderService.create({
       shipping_address: {
         street: "street 1001",
@@ -288,13 +287,11 @@ describe("OrderService - integrationTest", () => {
       user_id: "507f1f77bcf86cd799439013",
     });
 
-    // Current stocks: prod1=15, prod2=7, prod3=3
-    // Update items: increase prod1, decrease prod2, remove prod3, add new prod4
     const prod4 = await createTestProduct({ stock: 8 });
     await OrderService.updateItems(order._id!, [
-      { product_id: prod1._id.toString(), count: 8 }, // increase by 3
-      { product_id: prod2._id.toString(), count: 1 }, // decrease by 2
-      { product_id: prod4._id.toString(), count: 4 }, // new item
+      { product_id: prod1._id.toString(), count: 8 },
+      { product_id: prod2._id.toString(), count: 1 },
+      { product_id: prod4._id.toString(), count: 4 },
     ]);
 
     const updatedProd1 = await productCollection.findOne({ _id: prod1._id });
@@ -302,9 +299,148 @@ describe("OrderService - integrationTest", () => {
     const updatedProd3 = await productCollection.findOne({ _id: prod3._id });
     const updatedProd4 = await productCollection.findOne({ _id: prod4._id });
 
-    expect(updatedProd1?.stock).toEqual(12); // 15 - 3 = 12 (20 - 8 total)
-    expect(updatedProd2?.stock).toEqual(9); // 7 + 2 = 9 (10 - 1 total)
-    expect(updatedProd3?.stock).toEqual(5); // 3 + 2 (restored) = 5
-    expect(updatedProd4?.stock).toEqual(4); // 8 - 4 = 4
+    expect(updatedProd1?.stock).toEqual(12);
+    expect(updatedProd2?.stock).toEqual(9);
+    expect(updatedProd3?.stock).toEqual(5);
+    expect(updatedProd4?.stock).toEqual(4);
+  });
+  it("should find orders by user id", async () => {
+    const userId = "507f1f77bcf86cd799439013";
+    const prod = await createTestProduct();
+
+    await orderCollection.insertOne(
+      {
+        status: "pending",
+        shipping_address: {
+          street: "street 1001",
+          city: "karaj",
+          province: "alborz",
+          postCode: 2000000000,
+        },
+        totalPrice: 10000,
+        products: [{ product_id: prod._id, count: 1 }],
+        user_id: userId,
+      },
+      { bypassDocumentValidation: true },
+    );
+
+    await orderCollection.insertOne(
+      {
+        status: "pending",
+        shipping_address: {
+          street: "street 2002",
+          city: "tehran",
+          province: "tehran",
+          postCode: 2000000001,
+        },
+        totalPrice: 20000,
+        products: [{ product_id: prod._id, count: 1 }],
+        user_id: userId,
+      },
+      { bypassDocumentValidation: true },
+    );
+
+    const orders = await OrderService.findUserOrders(userId);
+    expect(orders).toBeDefined();
+    expect(Array.isArray(orders)).toBe(true);
+    expect(orders).toHaveLength(2);
+  });
+
+  it("should throw when new product in updateItems is out of stock", async () => {
+    const prod1 = await createTestProduct({ stock: 10 });
+    const prod2 = await createTestProduct({ stock: 0 });
+
+    const order = await OrderService.create({
+      shipping_address: {
+        street: "street 1001",
+        city: "karaj",
+        province: "alborz",
+        postCode: 2000000000,
+      },
+      products: [{ product_id: prod1._id.toString(), count: 5 }],
+      user_id: "507f1f77bcf86cd799439013",
+    });
+
+    await expect(
+      OrderService.updateItems(order._id!, [
+        { product_id: prod1._id.toString(), count: 5 },
+        { product_id: prod2._id.toString(), count: 1 },
+      ]),
+    ).rejects.toThrow();
+  });
+
+  it("should handle canceling already canceled order", async () => {
+    const order = await createTestOrder();
+    const orderId = order._id.toString();
+    await OrderService.cancel(orderId);
+    const canceledOrder = await orderCollection.findOne({
+      _id: new ObjectId(orderId),
+    });
+    expect(canceledOrder!.status).toEqual("canceled");
+    await OrderService.cancel(orderId);
+    const afterSecondCancel = await orderCollection.findOne({
+      _id: new ObjectId(orderId),
+    });
+    expect(afterSecondCancel!.status).toEqual("canceled");
+  });
+
+  it("should handle completing already completed order", async () => {
+    const order = await createTestOrder();
+    const orderId = order._id.toString();
+    await OrderService.complete(orderId);
+    const completedOrder = await orderCollection.findOne({
+      _id: new ObjectId(orderId),
+    });
+    expect(completedOrder!.status).toEqual("completed");
+    await OrderService.complete(orderId);
+    const afterSecondComplete = await orderCollection.findOne({
+      _id: new ObjectId(orderId),
+    });
+    expect(afterSecondComplete!.status).toEqual("completed");
+  });
+
+  it("should handle confirming already confirmed order", async () => {
+    const order = await createTestOrder();
+    const orderId = order._id.toString();
+    await OrderService.confirm(orderId);
+    const confirmedOrder = await orderCollection.findOne({
+      _id: new ObjectId(orderId),
+    });
+    expect(confirmedOrder!.status).toEqual("confirmed");
+    await OrderService.confirm(orderId);
+    const afterSecondConfirm = await orderCollection.findOne({
+      _id: new ObjectId(orderId),
+    });
+    expect(afterSecondConfirm!.status).toEqual("confirmed");
+  });
+
+  it("should throw when finding order with invalid ObjectId format", async () => {
+    await expect(OrderService.findById("invalid-id")).rejects.toThrow(
+      "order id is invalid",
+    );
+  });
+
+  it("should throw when deleting order with invalid ObjectId format", async () => {
+    await expect(OrderService.delete("invalid-id")).rejects.toThrow(
+      "order id is invalid",
+    );
+  });
+
+  it("should throw when canceling order with invalid ObjectId format", async () => {
+    await expect(OrderService.cancel("invalid-id")).rejects.toThrow(
+      "order id is invalid",
+    );
+  });
+
+  it("should throw when completing order with invalid ObjectId format", async () => {
+    await expect(OrderService.complete("invalid-id")).rejects.toThrow(
+      "order id is invalid",
+    );
+  });
+
+  it("should throw when confirming order with invalid ObjectId format", async () => {
+    await expect(OrderService.confirm("invalid-id")).rejects.toThrow(
+      "order id is invalid",
+    );
   });
 });

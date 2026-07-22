@@ -134,5 +134,49 @@ describe("ProductService - integrationTest", () => {
       product = await ProductService.findById(productId);
       expect(product?.stock).toEqual(110);
     });
+
+    it("should throw when finding product with invalid ObjectId format", async () => {
+      await expect(ProductService.findById("invalid-id")).rejects.toThrow(
+        "product id is invalid",
+      );
+    });
+
+    it("should throw when deleting product with invalid ObjectId format", async () => {
+      await expect(ProductService.delete("invalid-id")).rejects.toThrow(
+        "Invalid product id",
+      );
+    });
+
+    it("should throw when decreasing stock with invalid ObjectId format", async () => {
+      await expect(ProductService.decreaseStock("invalid-id", 10)).rejects.toThrow(
+        "product id is invalid",
+      );
+    });
+
+    it("should throw when increasing stock with invalid ObjectId format", async () => {
+      await expect(ProductService.increaseStock("invalid-id", 10)).rejects.toThrow(
+        "product id is invalid",
+      );
+    });
+
+    it("should not change stock when decreasing with zero quantity", async () => {
+      const productId = await createTestProduct();
+      const productBefore = await ProductService.findById(productId);
+      expect(productBefore?.stock).toEqual(100);
+    });
+
+    it("should not throw when decreasing stock with negative quantity", async () => {
+      const productId = await createTestProduct();
+      await ProductService.decreaseStock(productId, -5);
+      const product = await ProductService.findById(productId);
+      expect(product?.stock).toBeGreaterThanOrEqual(100);
+    });
+
+    it("should increase stock with zero quantity", async () => {
+      const productId = await createTestProduct();
+      await ProductService.increaseStock(productId, 0);
+      const product = await ProductService.findById(productId);
+      expect(product?.stock).toEqual(100);
+    });
   });
 });

@@ -262,10 +262,67 @@ describe("UserService - integrationTest", () => {
     const deletedUser = await UserService.deleteUser(userId);
     expect(deletedUser.deletedCount).toEqual(1);
 
-    // Verify user is gone
     const foundUser = await userCollection.findOne({
       _id: new ObjectId(userId),
     });
     expect(foundUser).toBeNull();
+  });
+
+  it("should throw when finding user by password with invalid ObjectId", async () => {
+    await expect(
+      UserService.findByPassword("invalid-id", "password"),
+    ).rejects.toThrow("Invalid user id");
+  });
+
+  it("should throw when storing token with invalid userId", async () => {
+    const { jti, refreshTokenRaw, refTokenMaxAge } = createTestToken();
+    await expect(
+      UserService.storeToken(jti, "invalid-id", refreshTokenRaw, refTokenMaxAge),
+    ).rejects.toThrow("Invalid user id");
+  });
+
+  it("should throw when storing token with missing jti", async () => {
+    const userId = await createTestUser();
+    const { refreshTokenRaw, refTokenMaxAge } = createTestToken();
+    await expect(
+      UserService.storeToken("", userId, refreshTokenRaw, refTokenMaxAge),
+    ).rejects.toThrow("user id, token or exp date is missing");
+  });
+
+  it("should throw when storing token with missing tokenRaw", async () => {
+    const userId = await createTestUser();
+    const { jti, refTokenMaxAge } = createTestToken();
+    await expect(
+      UserService.storeToken(jti, userId, "", refTokenMaxAge),
+    ).rejects.toThrow("user id, token or exp date is missing");
+  });
+
+  it("should throw when storing token with missing maxAge", async () => {
+    const userId = await createTestUser();
+    const { jti, refreshTokenRaw } = createTestToken();
+    await expect(
+      UserService.storeToken(jti, userId, refreshTokenRaw, 0),
+    ).rejects.toThrow("user id, token or exp date is missing");
+  });
+
+  it("should throw when finding user by id with invalid ObjectId", async () => {
+    await expect(UserService.findById("invalid-id")).rejects.toThrow(
+      "Invalid user id",
+    );
+  });
+
+  it("should not store raw password in database", async () => {
+    const rawPassword = "mySecretPassword123";
+    const user = await UserService.register({
+      username: "secureUser",
+      password: rawPassword,
+      email: "secure@test.com",
+    });
+
+    const dbUser = await userCollection.findOne({
+      _id: new ObjectId(user._id),
+    });
+
+    expect(dbUser.password).not.toEqual(rawPassword);
   });
 });
