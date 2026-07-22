@@ -1,10 +1,10 @@
 import { mongo_client } from "@config/mongo_client.ts";
 
-export let database = mongo_client.db(process.env.DATABASE_NAME);
+export const database = mongo_client.db(process.env.DATABASE_NAME);
 
 /**
  * Establishes connection to MongoDB.
- * This should be called explicitly in application startup or test setup,
+ * This should be called explicitly in test setup,
  * NOT automatically on module import to prevent race conditions.
  */
 export async function connectToDatabase() {

@@ -95,7 +95,7 @@ describe("ReviewService - integrationTest", () => {
     });
     const foundReviews = await ReviewService.findProductReviews(productId);
 
-    console.log(foundReviews);
+    console.log("founded products reviews: ", foundReviews);
     expect(foundReviews).toBeDefined();
     expect(Array.isArray(foundReviews)).toBe(true);
     expect(foundReviews).toHaveLength(3);
@@ -164,7 +164,7 @@ describe("ReviewService - integrationTest", () => {
     });
 
     await expect(
-      ReviewService.delete(user1Review._id.toString(), user2Id),
+      ReviewService.delete(user1Review!._id.toString(), user2Id),
     ).rejects.toThrow("review no longer exist");
   });
 
@@ -183,10 +183,10 @@ describe("ReviewService - integrationTest", () => {
       user_id: new ObjectId(userId),
     });
 
-    const result = await ReviewService.delete(review._id.toString(), userId);
+    const result = await ReviewService.delete(review!._id.toString(), userId);
     expect(result.deletedCount).toEqual(1);
 
-    const deleted = await reviewCollection.findOne({ _id: review._id });
+    const deleted = await reviewCollection.findOne({ _id: review!._id });
     expect(deleted).toBeNull();
   });
 

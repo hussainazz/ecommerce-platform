@@ -2,13 +2,10 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import { routerV1 } from "routes/index.ts";
 import { connectToDatabase } from "@db/database.ts";
+import { initSchema } from "@db/schemas/initSchema.ts";
 
 const app = express();
-
-app.use(cookieParser());
-app.use(express.json());
-
-app.use("/api/v1/", routerV1);
+await initSchema();
 
 // Ensure database connection is established before starting the server
 // This prevents race conditions where routes are hit before DB is ready
@@ -24,7 +21,8 @@ async function startServer() {
     process.exit(1);
   }
 }
+app.use(cookieParser());
+app.use(express.json());
+app.use("/api/v1/", routerV1);
 
 startServer();
-
-// ecommerce/monolith/
