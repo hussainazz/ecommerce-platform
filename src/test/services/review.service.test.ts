@@ -11,6 +11,7 @@ async function createTestProduct(overrides: { stock?: number } = {}) {
     price: 100,
     category: "test",
     stock: overrides.stock ?? 10,
+    description: "a test product",
   });
   return result.insertedId.toString();
 }
@@ -165,5 +166,111 @@ describe("ReviewService - integrationTest", () => {
     await expect(
       ReviewService.delete(user1Review._id.toString(), user2Id),
     ).rejects.toThrow("review no longer exist");
+  });
+
+  it("should delete a review successfully", async () => {
+    const productId = await createTestProduct();
+    const userId = new ObjectId().toString();
+
+    await ReviewService.add({
+      product_id: productId,
+      user_id: userId,
+      rate: 4,
+      comment: "To be deleted",
+    });
+
+    const review = await reviewCollection.findOne({
+      user_id: new ObjectId(userId),
+    });
+
+    const result = await ReviewService.delete(review._id.toString(), userId);
+    expect(result.deletedCount).toEqual(1);
+
+    const deleted = await reviewCollection.findOne({ _id: review._id });
+    expect(deleted).toBeNull();
+  });
+
+  it("should find review by id", async () => {
+    const productId = await createTestProduct();
+    const userId = new ObjectId().toString();
+
+    const inserted = await ReviewService.add({
+      product_id: productId,
+      user_id: userId,
+      rate: 5,
+      comment: "Find me",
+    });
+
+    const found = await ReviewService.findById(inserted._id);
+    expect(found).toBeDefined();
+    expect(found._id.toString()).toEqual(inserted._id);
+  });
+
+  it("should throw when finding review with non-existent id", async () => {
+    const randomId = new ObjectId().toString();
+    await expect(ReviewService.findById(randomId)).rejects.toThrow(
+      `review ${randomId} not exist`,
+    );
+  });
+
+  it("should throw when finding review with invalid ObjectId", async () => {
+    await expect(ReviewService.findById("invalid-id")).rejects.toThrow(
+      "review id is invalid",
+    );
+  });
+
+  it("should throw when adding review with missing rate", async () => {
+    const productId = await createTestProduct();
+    await expect(
+      ReviewService.add({
+        product_id: productId,
+        user_id: testUser1,
+        rate: 0 as any,
+        comment: "No rate",
+      }),
+    ).rejects.toThrow("no review is recieved");
+  });
+
+  it("should throw when adding review with invalid product_id", async () => {
+    await expect(
+      ReviewService.add({
+        product_id: "invalid-product-id",
+        user_id: testUser1,
+        rate: 3,
+        comment: "Bad product id",
+      }),
+    ).rejects.toThrow("product id is invalid");
+  });
+
+  it("should throw when adding review with invalid user_id", async () => {
+    const productId = await createTestProduct();
+    await expect(
+      ReviewService.add({
+        product_id: productId,
+        user_id: "invalid-user-id",
+        rate: 3,
+        comment: "Bad user id",
+      }),
+    ).rejects.toThrow("user id is invalid");
+  });
+
+  it("should throw when finding product reviews with invalid ObjectId", async () => {
+    await expect(
+      ReviewService.findProductReviews("invalid-id"),
+    ).rejects.toThrow("review id is invalid");
+  });
+
+  it("should return empty array when finding reviews for product with no reviews", async () => {
+    const productId = await createTestProduct();
+    const reviews = await ReviewService.findProductReviews(productId);
+    expect(reviews).toBeDefined();
+    expect(Array.isArray(reviews)).toBe(true);
+    expect(reviews).toHaveLength(0);
+  });
+
+  it("should throw when deleting review with invalid ObjectId", async () => {
+    await expect(ReviewService.delete("invalid-id", testUser1)).rejects.toThrow(
+      "review id is invalid",
+    );
   });
 });
