@@ -62,7 +62,7 @@ export class PaymentService {
       { $set: { status: "success" } },
     );
     if (result.matchedCount !== 1) {
-      throw new Error("product no longer exist");
+      throw new Error("payment no longer exist");
     }
     return result;
   }
@@ -73,13 +73,13 @@ export class PaymentService {
       { $set: { status: "fail" } },
     );
     if (result.matchedCount !== 1) {
-      throw new Error("product no longer exist");
+      throw new Error("payment no longer exist");
     }
     return result;
   }
 
   static async findById(_id: string, user_id: string) {
-    if (!ObjectId.isValid(_id) || !ObjectId.isValid(_id))
+    if (!ObjectId.isValid(_id) || !ObjectId.isValid(user_id))
       throw new Error("payment/user id is invalid");
     const result = await paymentCollection.findOne({
       _id: new ObjectId(_id),
@@ -89,7 +89,7 @@ export class PaymentService {
   }
   static async findAll(user_id: string) {
     if (!ObjectId.isValid(user_id)) throw new Error("user id is invalid");
-    const result = await paymentCollection.find({
+    const result = paymentCollection.find({
       user_id: new ObjectId(user_id),
     });
     return result;
