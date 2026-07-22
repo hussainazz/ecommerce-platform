@@ -17,7 +17,7 @@ export class UserService {
     const passwordHash = await bcrypt.hash(data.password, 12);
     const result = await userCollection.insertOne({
       ...data,
-      passwordHash,
+      password: passwordHash,
       role: "user",
     });
     return {
